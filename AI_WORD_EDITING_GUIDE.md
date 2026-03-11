@@ -70,6 +70,7 @@
 - Work **one document section per chat session** to keep context tight and avoid context window degradation
 - **If the writer does not provide a section number or name when pasting text, ask for it before proceeding** — section identity is required to correctly log items in `ITEMS_TO_CHECK.md` and `GRAMMATICAL_RULES_FORWARD.md` (e.g., for ordering acronym first-use)
 - At the start of each session, the writer should attach `GRAMMATICAL_RULES_FORWARD.md` and `ITEMS_TO_CHECK.md` using `#file` in the chat input so prior session decisions carry forward
+- **When the first in-text citation is encountered in a section, ask the writer to provide the reference list** so that citation completeness can be checked on the first pass rather than deferred to a second-pass session. If the writer provides it, flag any in-text citations missing from the list or any reference list entries not cited in the text.
 - At the **end of each session**, explicitly update any of the markdown guide files with new rules, errors, or check items discovered that session
 - A **second-pass session** should be run after all sections are edited, using `ITEMS_TO_CHECK.md` as the agenda to resolve outstanding items
 - Save a dated copy of the `.docx` before each session as a rollback point

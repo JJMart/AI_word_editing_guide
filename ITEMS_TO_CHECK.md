@@ -58,7 +58,7 @@ Verify that numeric values cited in the text match those in tables and figures.
 
 ## Reference List
 
-Verify that all in-text citations appear in the reference list and all reference list entries are cited in the text.
+Verify that all in-text citations appear in the reference list and all reference list entries are cited in the text. Note: if the writer provided the reference list during the first-pass session, this may already be resolved.
 
 | Issue | Detail | Status |
 |---|---|---|

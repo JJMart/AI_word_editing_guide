@@ -44,6 +44,7 @@ Every edit is implemented as a Word VBA macro using `Find`/`Replace` with tracke
 
 - Work one document section per session to avoid context window degradation
 - `GRAMMATICAL_RULES_FORWARD.md` and `ITEMS_TO_CHECK.md` must be attached by the writer each session via `#file` — apply rules from these files to all edits
+- **When the first in-text citation is encountered in a section, ask the writer to provide the reference list** so that citation completeness can be checked on the first pass rather than deferred to a second-pass session. If the writer provides it, flag any in-text citations missing from the list or any reference list entries not cited in the text.
 - If guide files are missing from the workspace, ask the writer before creating new ones — `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md` are cross-project living documents the writer may already have
 - At the end of each session, update guide files as needed:
   - `GRAMMATICAL_RULES_FORWARD.md` — new style or terminology decisions
