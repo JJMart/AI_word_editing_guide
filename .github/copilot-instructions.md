@@ -64,6 +64,7 @@ Every edit is implemented as a Word VBA macro using `Find`/`Replace` with tracke
 - Awkward parenthetical constructions that disrupt sentence flow
 - Redundant phrasing
 - Passive voice where active is clearer (acceptable in Methods sections)
+- **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do.
 
 ---
 

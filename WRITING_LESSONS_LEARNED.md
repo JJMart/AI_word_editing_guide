@@ -27,4 +27,4 @@ This is a living document of general lessons learned from AI-assisted document e
 
 ## General Writing
 
-*(Add general writing insights here as they emerge)*
+- **Never introduce em dashes (—) in suggested edits.** AI models use em dashes far more frequently than most writers do, and the average writer does not type them naturally (they require Alt codes or special input methods). If an em dash already exists in the document, flag it and confirm with the writer that it is intentional before leaving it in place — do not silently preserve or add them.

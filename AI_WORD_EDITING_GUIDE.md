@@ -132,3 +132,4 @@ These five files live in the same folder as the document being edited. If any ar
 - Awkward parenthetical constructions that disrupt sentence flow
 - Redundant phrasing
 - Passive voice where active is clearer (use judgment — passive is acceptable in methods sections)
+- **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do.
