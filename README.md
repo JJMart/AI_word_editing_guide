@@ -1,6 +1,6 @@
 # AI Word Editing Guide
 
-A structured workflow for editing Microsoft Word documents using an AI assistant (e.g., GitHub Copilot, ChatGPT) with changes delivered as tracked revisions via VBA macros. The writer retains full control — every suggested edit appears as a tracked change to accept or reject individually.
+A structured workflow for editing Microsoft Word documents using an AI assistant (e.g., GitHub Copilot, ChatGPT) with changes delivered as tracked revisions via VBA macros. The writer retains full control — every suggested edit appears as a tracked change to accept or reject individually. When the AI is uncertain about a phrasing preference, encounters an ambiguous case, or needs context only the writer can provide, it will ask for clarification or present options rather than guessing.
 
 ---
 
@@ -8,8 +8,8 @@ A structured workflow for editing Microsoft Word documents using an AI assistant
 
 1. You export a plain-text (`.txt`) copy of your document and place it in the project folder
 2. The AI reads the file directly — no need to paste section text manually
-3. The AI asks clarifying questions, then reviews the section and proposes specific edits with rationale
-4. The AI writes a Word VBA macro implementing those edits with Track Changes enabled
+3. The AI asks clarifying questions before beginning; during review it will flag any items it is uncertain about and ask the writer to clarify or choose between options before proceeding
+4. The AI proposes specific edits with rationale, then writes a Word VBA macro implementing those edits with Track Changes enabled
 5. You paste and run the macro in Word — all changes appear as tracked revisions
 6. You accept or reject each change individually using the Word Review ribbon
 
