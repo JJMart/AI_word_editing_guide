@@ -23,14 +23,20 @@
 
 ### Session Start
 1. Save a dated backup copy of the `.docx` (e.g., `MyDoc_2026-03-10.docx`)
-2. Open a new chat session
-3. Attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` using `#file` in the chat input
-4. Tell the AI the following before pasting text:
+2. Export a plain-text reference copy of the document for the AI to read:
+   - In Word: `File → Save As → Plain Text (*.txt)`
+   - In the File Conversion dialog: select **Other encoding → Unicode (UTF-8)**
+   - Uncheck **Insert line breaks** and **Allow character substitution**
+   - Leave **End lines with: CR/LF**
+   - Click OK — the yellow warning triangle should not appear; if it does, the encoding is wrong
+   - Place the `.txt` file in the project folder alongside the guide files
+3. Open a new chat session
+4. Attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` using `#file` in the chat input
+5. Tell the AI the filename of the `.txt` export and which section(s) to work on
+6. Tell the AI the following before it begins:
    - The **document type** (e.g., peer-reviewed paper, technical report, grant proposal)
-   - The **section name and number** you are working on
    - Your preferred **edit aggressiveness level** (see Section 2 — General Workflow)
-5. Paste the section text
-6. **Wait for the AI to ask any clarifying questions before it begins suggesting edits** — answer these before proceeding
+7. **Wait for the AI to ask any clarifying questions before it begins suggesting edits** — answer these before proceeding
 
 ### Session End
 1. Ask the AI to update `GRAMMATICAL_RULES_FORWARD.md` with any new style or terminology rules established this session
@@ -68,9 +74,14 @@
 
 ### Session Management
 - Work **one document section per chat session** to keep context tight and avoid context window degradation
-- **If the writer does not provide a section number or name when pasting text, ask for it before proceeding** — section identity is required to correctly log items in `ITEMS_TO_CHECK.md` and `GRAMMATICAL_RULES_FORWARD.md` (e.g., for ordering acronym first-use)
+- **The writer should provide a plain-text (`.txt`) export of the document** so the AI can read section content and heading text directly — this replaces the need to paste section text manually and allows the AI to identify section-scoping anchors for VBA macros without asking the writer to check the Navigation panel
+- **When first reading a `.txt` file in a session, verify it was exported correctly** by checking that special characters are intact (e.g., Greek letters, en dashes, degree symbols, middle dots). If they appear as `?` or garbled characters, ask the writer to re-export using: `File → Save As → Plain Text → Other encoding → Unicode (UTF-8)`, with **Insert line breaks** and **Allow character substitution** both unchecked. Note: superscripts and subscripts that were applied as character *formatting* (rather than true Unicode characters) will always render as plain digits/letters regardless of encoding — this is expected and unavoidable
+- **If the writer does not provide a section number or name, ask for it before proceeding** — section identity is required to correctly log items in `ITEMS_TO_CHECK.md` and `GRAMMATICAL_RULES_FORWARD.md` (e.g., for ordering acronym first-use)
 - At the start of each session, the writer should attach `GRAMMATICAL_RULES_FORWARD.md` and `ITEMS_TO_CHECK.md` using `#file` in the chat input so prior session decisions carry forward
 - **When the first in-text citation is encountered in a section, ask the writer to provide the reference list** so that citation completeness can be checked on the first pass rather than deferred to a second-pass session. If the writer provides it, flag any in-text citations missing from the list or any reference list entries not cited in the text.
+- **Before modifying any figure or table caption, ask the writer whether they use automatic Word captions** — editing automatic captions can break Word's automatic numbering links and cross-references throughout the document
+- **When scoping a macro to a specific section**, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text that opens and closes the target section — use these as bounding anchors in the macro to prevent find/replace operations from running beyond the intended section
+- **After delivering a macro**, instruct the writer to verify that the edit count reported in the MsgBox matches the expected number of changes before accepting tracked revisions
 - At the **end of each session**, explicitly update any of the markdown guide files with new rules, errors, or check items discovered that session
 - A **second-pass session** should be run after all sections are edited, using `ITEMS_TO_CHECK.md` as the agenda to resolve outstanding items
 - Save a dated copy of the `.docx` before each session as a rollback point
@@ -79,11 +90,17 @@
 ### VBA Writing Rules
 - Always include `oDoc.TrackRevisions = True` at the top — it is idempotent (safe if already on)
 - Use `Find`/`Replace` with `.MatchCase` set to `True` when the search string contains proper nouns, sentence-opening capitals, or any capitalization that is meaningful and must be matched exactly; use `False` otherwise
+- **Also use `.MatchCase = True` when the found text begins with an uppercase letter but the replacement should be lowercase** — with `False`, Word infers the capitalization pattern of the found text and auto-capitalizes the replacement to match (e.g., replacing an acronym mid-sentence with a lowercase phrase)
 - Always call `.ClearFormatting` and `.Replacement.ClearFormatting` before each Find block to prevent formatting bleed-through between replacements
 - Set `.Wrap = wdFindContinue` so the search covers the full document regardless of cursor position
 - Use `Replace:=wdReplaceAll` unless a phrase appears multiple times and only one instance should be changed — in that case use `wdReplaceOne` and anchor with surrounding unique text
 - For long sentence replacements, match enough unique surrounding text to guarantee uniqueness in the document
-- End each macro with a `MsgBox` confirming how many edits were applied
+- Use `ChrW()` (not `Chr()`) for any Unicode character above code point 255 — e.g., `ChrW(8211)` = en dash, `ChrW(8212)` = em dash, `ChrW(8217)` = smart right apostrophe. `Chr()` only accepts values 0–255 and will raise runtime error '5' for higher code points
+- For contractions and possessives in `.Text` strings, always use `ChrW(8217)` for the apostrophe — Word AutoCorrect replaces straight `'` with a curly right single quotation mark (U+2019) that a bare `'` will not match
+- `Find.Text` has a hard limit of approximately 255 characters; for deletions longer than ~200 characters, use the anchor-range-delete pattern (find unique start anchor, find unique end anchor, build a Range between them, call `.Delete`) rather than Find/Replace
+- Build the `MsgBox` summary string in a `Dim sMsg As String` variable and call `MsgBox sMsg` at the end — VBA allows a maximum of 24 line continuations per logical line, and a long inline `MsgBox` string will exceed this and fail to compile
+- Never include `Attribute VB_Name = "..."` in generated macro code — this line causes a compile syntax error when pasted directly into the VBA editor; start the file with the comment block or directly with `Sub MacroName()`
+- End each macro with `MsgBox sMsg` (using the summary variable) confirming how many edits were applied; tell the writer to verify this count matches expectations before accepting changes
 - Comment every Find/Replace block with the rationale for the edit
 
 ### Markdown Guide Files — Purpose and Starter Content
@@ -133,4 +150,5 @@ These five files live in the same folder as the document being edited. If any ar
 - Awkward parenthetical constructions that disrupt sentence flow
 - Redundant phrasing
 - Passive voice where active is clearer (use judgment — passive is acceptable in methods sections)
+- Citation punctuation errors (e.g., missing period after "al" in "et al") are acceptable to correct; do not alter citation style, numbering format, or author–year conventions
 - **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do.
