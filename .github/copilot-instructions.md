@@ -19,7 +19,7 @@ Before reviewing pasted text or suggesting any edits, ask the writer any clarify
 - **Intentional terms or abbreviations** that should not be changed
 - **First pass or partial edit** — whether the section has already been partially edited
 - **Co-author or journal style preferences** the writer is aware of
-Only skip questions whose answers are clearly already provided by the writer, in the workspace guide files, or in the `.txt` export.
+Only skip questions whose answers are clearly already provided by the writer, in the workspace guide files, or in the `.md` export.
 
 ---
 
@@ -53,11 +53,11 @@ Every edit is implemented as a Word VBA macro using `Find`/`Replace` with tracke
   - `WRITING_LESSONS_LEARNED.md` — apply general writing lessons from prior sessions
   - `AI_ERRORS_TO_AVOID.md` — avoid all VBA errors and pitfalls documented here
   - If any of these files are missing, create them from the starter content defined in `AI_WORD_EDITING_GUIDE.md` — but for `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`, first ask the writer whether they have existing versions from a previous project to bring in
-- **The writer should provide a plain-text (`.txt`) export of the document** so the AI can read section content and heading text directly — this eliminates manual section pasting and the need to ask the writer to check the Navigation panel for section-scoping anchors
-- **When first reading a `.txt` file in a session, verify it was exported correctly** by checking that special characters are intact. If they appear as `?` or garbled, ask the writer to re-export: `File → Save As → Plain Text → Other encoding → Unicode (UTF-8)`, with **Insert line breaks** and **Allow character substitution** both unchecked. Note: superscripts/subscripts applied as character formatting (not true Unicode) will always appear as plain characters regardless of encoding — this is expected
+- **The writer should provide a pandoc-generated Markdown (`.md`) export of the document** so the AI can read section content, heading structure, and tables directly — this eliminates manual section pasting and allows the AI to identify section-scoping anchors without asking the writer to check the Navigation panel. The recommended command is: `pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"`
+- **When first reading a `.md` file in a session, verify it was converted correctly** by checking that headings appear as `#` markers, tables render as Markdown tables, and special characters are intact. Note: superscripts/subscripts applied as character formatting (not true Unicode) will always appear as plain characters — this is expected. **VBA character handling still applies:** Unicode characters visible in the `.md` (en dashes, smart quotes, etc.) must still use `ChrW()` in VBA `Find.Text` strings — never copy them literally into VBA string literals
 - **When the first in-text citation is encountered in a section, ask the writer to provide the reference list** so that citation completeness can be checked on the first pass rather than deferred to a second-pass session. If the writer provides it, flag any in-text citations missing from the list or any reference list entries not cited in the text.
 - **Before modifying any figure or table caption, ask the writer whether they use automatic Word captions** — editing automatic captions can break Word's automatic numbering links and cross-references throughout the document
-- **When scoping a macro to a specific section**, use heading text found in the `.txt` file as bounding anchors; if no `.txt` file is provided, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text
+- **When scoping a macro to a specific section**, read the exact heading text directly from the `.md` file (`#` markers); use these as bounding anchors in the macro. If no `.md` file is provided, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text
 - If guide files are missing from the workspace, ask the writer before creating new ones — `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md` are cross-project living documents the writer may already have
 - At the end of each session, update guide files as needed:
   - `GRAMMATICAL_RULES_FORWARD.md` — new style or terminology decisions

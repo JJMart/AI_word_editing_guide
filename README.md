@@ -6,7 +6,7 @@ A structured workflow for editing Microsoft Word documents using an AI assistant
 
 ## How It Works
 
-1. You export a plain-text (`.txt`) copy of your document and place it in the project folder
+1. You convert your document to Markdown using pandoc and place the `.md` file in the project folder
 2. The AI reads the file directly — no need to paste section text manually
 3. The AI asks clarifying questions before beginning; during review it will flag any items it is uncertain about and ask the writer to clarify or choose between options before proceeding
 4. The AI proposes specific edits with rationale, then writes a Word VBA macro implementing those edits with Track Changes enabled
@@ -29,20 +29,24 @@ A structured workflow for editing Microsoft Word documents using an AI assistant
 
 ---
 
-## Exporting a Plain-Text Reference Copy
+## Converting the Document to Markdown
 
-Before each session, export a `.txt` copy of your document so the AI can read it directly:
+Before each session, convert your `.docx` to Markdown using pandoc so the AI can read it directly:
 
-1. In Word: `File → Save As → Plain Text (*.txt)`
-2. In the File Conversion dialog:
-   - Select **Other encoding → Unicode (UTF-8)**
-   - Uncheck **Insert line breaks**
-   - Uncheck **Allow character substitution**
-   - Leave **End lines with: CR/LF**
-3. Click OK — the yellow warning triangle should not appear (if it does, the encoding is wrong)
-4. Place the `.txt` file in the same project folder as the guide files
+1. Open a terminal (PowerShell) in the project folder
+2. Run:
+   ```powershell
+   pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"
+   ```
+   - `--wrap=none` — keeps each paragraph as a single line, making it easy for the AI to locate anchor text
+   - `--track-changes=accept` — shows the clean accepted-state text; omit this flag if the document has pending tracked changes you want the AI to see
+3. Place the `.md` file in the same project folder as the guide files
 
-> **Note:** Superscripts and subscripts applied as character *formatting* in Word (rather than true Unicode characters) will render as plain digits or letters in the `.txt` regardless of encoding — this is expected and unavoidable. The AI will use `ChrW()` codes in VBA search strings for those characters rather than relying on the `.txt` representation.
+> **Why pandoc instead of plain-text export?** Pandoc preserves document structure — section headings appear as `#` Markdown headers (so the AI can scope macros to sections without you checking the Navigation pane), tables retain their layout, and lists stay readable. Plain-text export flattens all of this.
+
+> **VBA character note:** Unicode characters (en dashes, smart quotes, etc.) are visible in the `.md` file, but you still must use `ChrW()` codes in VBA `Find.Text` strings — never copy those characters literally into VBA string literals. Superscripts and subscripts applied as Word character *formatting* (not true Unicode) will still appear as plain digits or letters — this is expected.
+
+> **Install pandoc:** If pandoc is not already installed, download it from [pandoc.org](https://pandoc.org/installing.html) or install via `winget install JohnMacFarlane.Pandoc` in PowerShell.
 
 ---
 
@@ -65,13 +69,13 @@ Before each session, export a `.txt` copy of your document so the AI can read it
 
 ### Before Each Session
 1. Save a dated backup copy of your `.docx` (e.g., `MyDoc_2026-03-10.docx`)
-2. Export a `.txt` copy of the document using the instructions above and place it in the project folder
+2. Convert the document to Markdown using the pandoc command above and place the `.md` file in the project folder
 3. Open a new AI chat session
 4. Attach the guide files:
    - **VS Code + GitHub Copilot users:** no attachment needed — all guide files are read automatically from the workspace
    - **All other AI tools (ChatGPT, Claude, etc.):** attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` — or, if your tool supports a persistent system prompt file (e.g., `claude.md` for Claude Projects), copy the contents of `.github/copilot-instructions.md` into that file so the AI behavior rules load automatically and you only need to attach `GRAMMATICAL_RULES_FORWARD.md` and `ITEMS_TO_CHECK.md` each session
 5. Tell the AI:
-   - The **filename** of the `.txt` export and the **section name and number** to work on
+   - The **filename** of the `.md` export and the **section name and number** to work on
    - The **document type** (peer-reviewed paper, technical report, grant proposal, etc.)
    - Your preferred **edit aggressiveness level** (see below)
 6. Wait for the AI's clarifying questions before it begins
@@ -100,7 +104,7 @@ After all sections are edited, run a dedicated session using `ITEMS_TO_CHECK.md`
 
 If you are using this workflow in VS Code with GitHub Copilot Chat, the file `.github/copilot-instructions.md` is included in this repository. It is automatically injected into every Copilot Chat session when you open this folder as a workspace.
 
-Copilot will also read `GRAMMATICAL_RULES_FORWARD.md`, `ITEMS_TO_CHECK.md`, `WRITING_LESSONS_LEARNED.md`, and `AI_ERRORS_TO_AVOID.md` automatically at the start of each session using its workspace file tools — **no manual file attachment is needed at all**. Simply tell Copilot the `.txt` filename and which section to work on.
+Copilot will also read `GRAMMATICAL_RULES_FORWARD.md`, `ITEMS_TO_CHECK.md`, `WRITING_LESSONS_LEARNED.md`, and `AI_ERRORS_TO_AVOID.md` automatically at the start of each session using its workspace file tools — **no manual file attachment is needed at all**. Simply tell Copilot the `.md` filename and which section to work on.
 
 If you are using a different AI tool (ChatGPT, Claude, etc.), attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` manually at the start of each session instead. If your tool supports a persistent system prompt file (e.g., `claude.md` for Claude Projects), copy the contents of `.github/copilot-instructions.md` into that file so the core AI behavior rules load automatically every session.
 

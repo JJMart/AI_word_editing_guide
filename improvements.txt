@@ -1,0 +1,13 @@
+Text files should be saved for each section. One file should have the VBA code used (after the writer confirms no issues using) and the other should be items flagged for the writers judgement
+
+It is OK to correct citation mistakes like missing the period, as I mostly meant things like not change "author et al. year" to "[#]"
+
+Assume the writer may have used automatic figure and table captions so check with the writer before modifying those to avoid breaking the automatic links in Word
+
+Give a screenshot of the Navigation panel so that it can make the VBA only apply to the desired section and not the entire document (e.g., don't replace "ABC" with "ABCD" and then go back to beginning causing "ABCDDDDD...")
+
+What in the changelog should be pulled out into a seperate file that is instructed to review by copilot-instructions (section headings, sections reviewed already, etc.) to avoid adding unneccessary context?
+
+Need instructions to the Writer to review the number of corrections made after running to ensure nothing was missed.
+
+How to ensure the copilot-instructions ensure that ITEMS_TO_CHECK and CHANGELOG are used consistently without being explicit about it?

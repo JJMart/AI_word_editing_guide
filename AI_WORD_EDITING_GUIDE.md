@@ -23,16 +23,18 @@
 
 ### Session Start
 1. Save a dated backup copy of the `.docx` (e.g., `MyDoc_2026-03-10.docx`)
-2. Export a plain-text reference copy of the document for the AI to read:
-   - In Word: `File → Save As → Plain Text (*.txt)`
-   - In the File Conversion dialog: select **Other encoding → Unicode (UTF-8)**
-   - Uncheck **Insert line breaks** and **Allow character substitution**
-   - Leave **End lines with: CR/LF**
-   - Click OK — the yellow warning triangle should not appear; if it does, the encoding is wrong
-   - Place the `.txt` file in the project folder alongside the guide files
+2. Convert the document to Markdown so the AI can read it directly:
+   - Open a terminal (PowerShell) in the project folder and run:
+     ```powershell
+     pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"
+     ```
+   - `--wrap=none` keeps each paragraph as a single line, making anchor text easy to locate
+   - `--track-changes=accept` shows the clean accepted-state text; if the document has pending tracked changes you want to preserve for review, omit this flag
+   - Place the `.md` file in the project folder alongside the guide files
+   - **Install pandoc if needed:** download from [pandoc.org](https://pandoc.org/installing.html) or run `winget install JohnMacFarlane.Pandoc` in PowerShell
 3. Open a new chat session
 4. Attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` using `#file` in the chat input
-5. Tell the AI the filename of the `.txt` export and which section(s) to work on
+5. Tell the AI the filename of the `.md` export and which section(s) to work on
 6. Tell the AI the following before it begins:
    - The **document type** (e.g., peer-reviewed paper, technical report, grant proposal)
    - Your preferred **edit aggressiveness level** (see Section 2 — General Workflow)
@@ -74,13 +76,16 @@
 
 ### Session Management
 - Work **one document section per chat session** to keep context tight and avoid context window degradation
-- **The writer should provide a plain-text (`.txt`) export of the document** so the AI can read section content and heading text directly — this replaces the need to paste section text manually and allows the AI to identify section-scoping anchors for VBA macros without asking the writer to check the Navigation panel
-- **When first reading a `.txt` file in a session, verify it was exported correctly** by checking that special characters are intact (e.g., Greek letters, en dashes, degree symbols, middle dots). If they appear as `?` or garbled characters, ask the writer to re-export using: `File → Save As → Plain Text → Other encoding → Unicode (UTF-8)`, with **Insert line breaks** and **Allow character substitution** both unchecked. Note: superscripts and subscripts that were applied as character *formatting* (rather than true Unicode characters) will always render as plain digits/letters regardless of encoding — this is expected and unavoidable
+- **The writer should provide a pandoc-generated Markdown (`.md`) export of the document** so the AI can read section content, headings, and structure directly — this replaces the need to paste section text manually and allows the AI to identify section-scoping anchors for VBA macros without asking the writer to check the Navigation panel. The recommended command is:
+  ```powershell
+  pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"
+  ```
+- **When first reading a `.md` file in a session, verify it was converted correctly** by checking that headings appear as `#` markers, tables render as Markdown tables, and special characters (en dashes, Greek letters, degree symbols) are intact rather than garbled. Note: superscripts and subscripts applied as character *formatting* (not true Unicode) will still appear as plain digits/letters — this is expected. **VBA character handling still applies:** even though Unicode characters are visible in the `.md` (e.g., en dashes, smart quotes), use `ChrW()` codes in VBA `Find.Text` strings — never copy those characters literally into VBA string literals
 - **If the writer does not provide a section number or name, ask for it before proceeding** — section identity is required to correctly log items in `ITEMS_TO_CHECK.md` and `GRAMMATICAL_RULES_FORWARD.md` (e.g., for ordering acronym first-use)
 - At the start of each session, the writer should attach `GRAMMATICAL_RULES_FORWARD.md` and `ITEMS_TO_CHECK.md` using `#file` in the chat input so prior session decisions carry forward
 - **When the first in-text citation is encountered in a section, ask the writer to provide the reference list** so that citation completeness can be checked on the first pass rather than deferred to a second-pass session. If the writer provides it, flag any in-text citations missing from the list or any reference list entries not cited in the text.
 - **Before modifying any figure or table caption, ask the writer whether they use automatic Word captions** — editing automatic captions can break Word's automatic numbering links and cross-references throughout the document
-- **When scoping a macro to a specific section**, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text that opens and closes the target section — use these as bounding anchors in the macro to prevent find/replace operations from running beyond the intended section
+- **When scoping a macro to a specific section**, read the exact heading text directly from the `.md` file (headings appear as `#` markers) and use them as bounding anchors in the macro to prevent find/replace operations from running beyond the intended section — no need to ask the writer to check the Navigation panel if the `.md` export is available
 - **After delivering a macro**, instruct the writer to verify that the edit count reported in the MsgBox matches the expected number of changes before accepting tracked revisions
 - At the **end of each session**, explicitly update any of the markdown guide files with new rules, errors, or check items discovered that session
 - A **second-pass session** should be run after all sections are edited, using `ITEMS_TO_CHECK.md` as the agenda to resolve outstanding items
