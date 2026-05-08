@@ -2,6 +2,8 @@
 
 This workspace uses a structured workflow for editing Microsoft Word documents. Edits are delivered as Word VBA macros that implement changes as tracked revisions. The writer accepts or rejects each change individually.
 
+This file is the single source of truth for AI behavior in this workflow. Agent-specific files (`.github/copilot-instructions.md`, `.roo/rules.md`, etc.) redirect here. The writer-facing summary lives in `README.md`; if a rule here affects what the writer does (session start/end steps, aggressiveness levels, file descriptions), mirror it there.
+
 ---
 
 ## Before Suggesting Any Edits
@@ -19,57 +21,88 @@ Before reviewing pasted text or suggesting any edits, ask the writer any clarify
 - **Intentional terms or abbreviations** that should not be changed
 - **First pass or partial edit** — whether the section has already been partially edited
 - **Co-author or journal style preferences** the writer is aware of
+- If the section contains in-text citations, ask the writer to provide the reference list so citation completeness can be checked on the first pass
+
 Only skip questions whose answers are clearly already provided by the writer, in the workspace guide files, or in the `.md` export.
+
+If a section has no errors and no stylistic issues above the requested aggressiveness threshold, report that explicitly and do not produce a macro. Do not invent edits to fill a perceived quota.
 
 ---
 
 ## Writing VBA Macros
 
-Every edit is implemented as a Word VBA macro using `Find`/`Replace` with tracked changes. Follow these rules:
+Every edit is implemented as a Word VBA macro using `Find`/`Replace` with tracked changes.
 
-- Begin every macro with `oDoc.TrackRevisions = True` (idempotent — safe if already on)
-- Call `.ClearFormatting` and `.Replacement.ClearFormatting` before every `Find` block
-- Set `.Wrap = wdFindContinue` on every `Find` block
-- Use `.MatchCase = True` for strings containing proper nouns or meaningful capitalization; `False` otherwise
-- **Also use `.MatchCase = True` when the found text begins with an uppercase letter but the replacement should be lowercase** — with `False`, Word auto-capitalizes the replacement to match the found text's case pattern
-- Use `Replace:=wdReplaceAll` by default; use `wdReplaceOne` only when a phrase appears multiple times and only one instance should change — anchor with sufficient surrounding unique text
-- Include enough surrounding context in search strings to guarantee uniqueness in the document
-- Use `ChrW()` (not `Chr()`) for any Unicode character above code point 255 — e.g., `ChrW(8211)` = en dash, `ChrW(8212)` = em dash, `ChrW(8217)` = smart right apostrophe
-- For contractions and possessives in `.Text` strings, use `ChrW(8217)` for the apostrophe — Word AutoCorrect replaces straight `'` with a curly right single quotation mark that a bare `'` will not match
-- `Find.Text` has a hard limit of ~255 characters; for deletions longer than ~200 characters, use the anchor-range-delete pattern instead of Find/Replace
-- Build the `MsgBox` summary string in a `Dim sMsg As String` variable and call `MsgBox sMsg` — VBA allows a maximum of 24 line continuations per logical line; exceeding this causes a compile error
-- Never include `Attribute VB_Name = "..."` in generated macro code — this causes a compile syntax error when pasted directly into the VBA editor
-- Comment every `Find`/`Replace` block with the rationale for the edit
-- End the macro with `MsgBox sMsg`; tell the writer to verify the reported edit count matches expectations before accepting changes
+### Use the canonical template
+
+**Always start from `VBA_MACRO_TEMPLATE.bas` in the workspace root.** Copy the full template, rename the `Sub` to reflect the section being edited (e.g. `ReviewEdits_2_1_Methods`), and fill **only** the EDIT BLOCKS region. Do not modify the HEADER or FOOTER regions — they are required for consistent per-edit reporting.
+
+### Per-edit success/failure reporting (required)
+
+Every Find/Replace block must be wrapped in an `If .Execute(...) Then / Else` structure that writes one line to `sMsg`:
+
+```vb
+If .Execute(Replace:=wdReplaceAll) Then
+    nOK = nOK + 1
+    sMsg = sMsg & "[OK]   Edit 3: removed hedge 'it is important to note that'" & vbCrLf
+Else
+    nFail = nFail + 1
+    sMsg = sMsg & "[FAIL] Edit 3: anchor not found - removed hedge" & vbCrLf
+End If
+```
+
+This replaces the old "bare total edit count" pattern. The writer should see one line per edit in the final MsgBox and investigate every `[FAIL]` line before accepting tracked changes. A bare total does not tell the writer *which* edit failed.
+
+For anchor-range-delete operations (long deletions), still wrap the deletion in a conditional that logs success or failure the same way.
+
+### VBA coding rules
+
+- Begin every macro with `oDoc.TrackRevisions = True` (template does this).
+- Call `.ClearFormatting` and `.Replacement.ClearFormatting` before every `Find` block.
+- Set `.Wrap = wdFindContinue` on every `Find` block.
+- Use `.MatchCase = True` for strings containing proper nouns or meaningful capitalization; `False` otherwise.
+- **Also use `.MatchCase = True` when the found text begins with an uppercase letter but the replacement should be lowercase** — with `False`, Word auto-capitalizes the replacement to match the found text's case pattern.
+- Use `Replace:=wdReplaceAll` by default; use `wdReplaceOne` only when a phrase appears multiple times and only one instance should change — anchor with sufficient surrounding unique text.
+- Include enough surrounding context in search strings to guarantee uniqueness in the document.
+- Use `ChrW()` (not `Chr()`) for any Unicode character above code point 255 — e.g., `ChrW(8211)` = en dash, `ChrW(8212)` = em dash, `ChrW(8217)` = smart right apostrophe.
+- For contractions and possessives in `.Text` strings, use `ChrW(8217)` for the apostrophe — Word AutoCorrect replaces straight `'` with a curly right single quotation mark that a bare `'` will not match.
+- `Find.Text` has a hard limit of ~255 characters; for deletions longer than ~200 characters, use the anchor-range-delete pattern (documented in `AI_ERRORS_TO_AVOID.md`) instead of Find/Replace.
+- Build the `MsgBox` summary string in a `Dim sMsg As String` variable and call `MsgBox sMsg` — VBA allows a maximum of 24 line continuations per logical line; exceeding this causes a compile error. The template already uses this pattern.
+- Never include `Attribute VB_Name = "..."` in generated macro code — this causes a compile syntax error when pasted directly into the VBA editor.
+- Comment every `Find`/`Replace` block with the rationale for the edit (the "Edit N:" comment).
 
 ---
 
 ## Session Management
 
-- Work one document section per session to avoid context window degradation
+- Work one document section per session to avoid context window degradation. Target roughly 500–3,000 words per session — adjust heading level accordingly.
 - **At the start of every session, read the following files from the workspace before doing anything else:**
   - `GRAMMATICAL_RULES_FORWARD.md` — apply all style and terminology rules found here to every edit
   - `ITEMS_TO_CHECK.md` — be aware of all open items; do not re-flag already resolved items
   - `WRITING_LESSONS_LEARNED.md` — apply general writing lessons from prior sessions
   - `AI_ERRORS_TO_AVOID.md` — avoid all VBA errors and pitfalls documented here
-  - If any of these files are missing, create them from the starter content defined in `AI_WORD_EDITING_GUIDE.md` — but for `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`, first ask the writer whether they have existing versions from a previous project to bring in
-- **The writer should provide a pandoc-generated Markdown (`.md`) export of the document** so the AI can read section content, heading structure, and tables directly — this eliminates manual section pasting and allows the AI to identify section-scoping anchors without asking the writer to check the Navigation panel. The recommended command is: `pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"`
-- **When first reading a `.md` file in a session, verify it was converted correctly** by checking that headings appear as `#` markers, tables render as Markdown tables, and special characters are intact. Note: superscripts/subscripts applied as character formatting (not true Unicode) will always appear as plain characters — this is expected. **VBA character handling still applies:** Unicode characters visible in the `.md` (en dashes, smart quotes, etc.) must still use `ChrW()` in VBA `Find.Text` strings — never copy them literally into VBA string literals
-- **When the first in-text citation is encountered in a section, ask the writer to provide the reference list** so that citation completeness can be checked on the first pass rather than deferred to a second-pass session. If the writer provides it, flag any in-text citations missing from the list or any reference list entries not cited in the text.
-- **Before modifying any figure or table caption, ask the writer whether they use automatic Word captions** — editing automatic captions can break Word's automatic numbering links and cross-references throughout the document
-- **When scoping a macro to a specific section**, read the exact heading text directly from the `.md` file (`#` markers); use these as bounding anchors in the macro. If no `.md` file is provided, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text
-- If guide files are missing from the workspace, ask the writer before creating new ones — `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md` are cross-project living documents the writer may already have
+  - `VBA_MACRO_TEMPLATE.bas` — use as the skeleton for any macro produced this session
+  - If any of the four `.md` guide files are missing, create them from the starter content in the "Guide File Starter Content" section below — but for `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`, first ask the writer whether they have existing versions from a previous project to bring in. If `VBA_MACRO_TEMPLATE.bas` is missing, tell the writer — do not regenerate it from memory.
+- **The writer should provide a pandoc-generated Markdown (`.md`) export of the document** so the AI can read section content, heading structure, and tables directly. The recommended command is: `pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"`.
+- **When first reading a `.md` file in a session, verify it was converted correctly** by checking that headings appear as `#` markers, tables render as Markdown tables, and special characters are intact. Note: superscripts/subscripts applied as character formatting (not true Unicode) will appear as plain characters — this is expected.
+- **The `.md` export is lossy.** It drops comments, cross-reference fields, equation objects, and character-formatted super/subscripts. When a proposed edit touches formatted content (subscripts, footnote markers, fields, partial-run bold), flag this to the writer and ask them to verify the `Find.Text` will match the real Word text before trusting the tracked change. **VBA character handling still applies:** Unicode characters visible in the `.md` (en dashes, smart quotes) must still use `ChrW()` in VBA `Find.Text` strings — never copy them literally into VBA string literals.
+- **Before modifying any figure or table caption, ask the writer whether they use automatic Word captions** — editing automatic captions can break Word's automatic numbering links and cross-references throughout the document.
+- **When scoping a macro to a specific section**, read the exact heading text directly from the `.md` file (`#` markers); use these as bounding anchors in the macro. If no `.md` file is provided, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text.
+- Do not modify the guide files during the session. Collect pending updates and apply them only at session end after the writer confirms.
 - At the end of each session, update guide files as needed:
   - `GRAMMATICAL_RULES_FORWARD.md` — new style or terminology decisions
   - `ITEMS_TO_CHECK.md` — newly flagged acronyms, cross-references, or consistency issues
   - `AI_ERRORS_TO_AVOID.md` — any VBA errors encountered
   - `WRITING_LESSONS_LEARNED.md` — any broadly applicable writing insights
+- A **second-pass session** should be run after all sections are edited, using `ITEMS_TO_CHECK.md` as the agenda to resolve outstanding items.
 
 ---
 
 ## AI Writing Indicators Check
 
-After proposing edits for a section **and** after writing a VBA macro, check the proposed changes against the Quick Reference Checklist in Section 8 of `AI_WRITING_INDICATORS.md`. Flag any AI writing indicators that appear in the original text (so the writer is aware) and verify that none of the proposed edits or macro replacements introduce new AI writing indicators. Do not load the full `AI_WRITING_INDICATORS.md` file at session start — read it only when performing this check.
+After proposing edits for a section **and** after writing the VBA macro, check against the Quick Reference Checklist in Section 8 of `AI_WRITING_INDICATORS.md`. Check **the replacement text destined for the document** and flag any AI writing indicators that already appear in the original text (so the writer is aware). Do not check rationale or explanation prose — only text that will end up in the document. Do not load the full `AI_WRITING_INDICATORS.md` at session start; read it only when performing this check.
+
+Verify that none of the proposed edits or macro replacement strings introduce new AI writing indicators.
 
 ---
 
@@ -87,14 +120,60 @@ After proposing edits for a section **and** after writing a VBA macro, check the
 - Citation punctuation errors (e.g., missing period after "al" in "et al") are acceptable to correct; do not alter citation style, numbering format, or author–year conventions
 - **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do.
 
+Edits should feel surgical; preserve the writer's existing voice. Do not paraphrase for the sake of paraphrasing.
+
+---
+
+## Guide File Starter Content
+
+If any of the four `.md` guide files are missing from the workspace, create them with the structure below. For `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`, ask the writer first whether they have cross-project versions to bring in.
+
+### `GRAMMATICAL_RULES_FORWARD.md` (document-scoped)
+Section headers, all tables empty on creation:
+- Units and Measurements
+- Proper Nouns and Capitalization
+- Terminology Preferences (table: Avoid | Prefer | Reason)
+- Sentence Structure Preferences
+- Citation Style
+- Tense
+- Voice and Person
+- Document-Specific Acronyms Defined (table: Acronym | Full term | First defined in section)
+
+### `ITEMS_TO_CHECK.md` (document-scoped)
+Section headers, all tables empty on creation:
+- Acronyms Used — Needs First-Definition Check (table: Acronym | Full term | Flagged in section | Status)
+- Acronyms Assigned — Needs Usage and Re-definition Check (table: Acronym | Full term | Defined in section | Status)
+- Cross-Reference Checks
+- Consistency Checks
+- Numeric Consistency
+- Reference List
+- Template for Logging an Item
+- Resolved Items
+
+### `AI_ERRORS_TO_AVOID.md` (cross-project, writer-owned)
+Section headers:
+- VBA Errors — empty on creation
+- Known Pitfalls (Preemptive) — pre-populate with: formatting bleed-through, non-unique search strings, special characters in VBA strings, and macro not found on Alt+F8
+
+Do not reset this file when starting a new document project — carry it forward.
+
+### `WRITING_LESSONS_LEARNED.md` (cross-project, writer-owned)
+Section headers, all empty on creation:
+- Workflow and Process
+- VBA Macro Editing
+- Working with AI on Technical Writing
+- General Writing
+
+Do not reset this file when starting a new document project — carry it forward.
+
 ---
 
 ## Known Rendering Note
 
-Two `~` characters separated by text in the chat may render as strikethrough due to Markdown formatting. This is a display artifact only and does not affect VBA string literals.
+Two `~` characters separated by text in a chat message may render as strikethrough due to Markdown formatting. This is a display artifact only and does not affect VBA string literals.
 
 ---
 
-## File Sync Note
+## README Sync
 
-`AI_WORD_EDITING_GUIDE.md` is the full workflow reference for this project and mirrors the rules in this file in expanded form. If anything in these instructions is worth updating based on a session's experience, make the corresponding update in `AI_WORD_EDITING_GUIDE.md` as well so the two files stay in sync. Do not direct the AI to read `AI_WORD_EDITING_GUIDE.md` during normal editing sessions — everything required is already in these instructions.
+`README.md` is the writer-facing summary of this workflow and is displayed on the GitHub project page. If a rule change here affects writer steps (session start/end checklists, aggressiveness levels, file descriptions, pandoc command), update `README.md` to match.
