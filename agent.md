@@ -86,7 +86,8 @@ For anchor-range-delete operations (long deletions), still wrap the deletion in 
 - **The writer should provide a pandoc-generated Markdown (`.md`) export of the document** so the AI can read section content, heading structure, and tables directly. The recommended command is: `pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"`.
 - **When first reading a `.md` file in a session, verify it was converted correctly** by checking that headings appear as `#` markers, tables render as Markdown tables, and special characters are intact. Note: superscripts/subscripts applied as character formatting (not true Unicode) will appear as plain characters — this is expected.
 - **The `.md` export is lossy.** It drops comments, cross-reference fields, equation objects, and character-formatted super/subscripts. When a proposed edit touches formatted content (subscripts, footnote markers, fields, partial-run bold), flag this to the writer and ask them to verify the `Find.Text` will match the real Word text before trusting the tracked change. **VBA character handling still applies:** Unicode characters visible in the `.md` (en dashes, smart quotes) must still use `ChrW()` in VBA `Find.Text` strings — never copy them literally into VBA string literals.
-- **Before modifying any figure or table caption, ask the writer whether they use automatic Word captions** — editing automatic captions can break Word's automatic numbering links and cross-references throughout the document.
+- **When editing figure or table captions, edit only the caption text** (the descriptive text after the label and number). Never modify the `Figure N:` / `Table N:` prefix, the number itself, or its punctuation — Word may be maintaining these via automatic numbering, and changing them can break cross-references throughout the document. If uncertain whether captions are automatic, tell the writer to check via Insert → Cross-reference.
+- **`oDoc.Content.Find` operates on the main document body only.** It does not reach footnote, endnote, header, footer, or comment text. If an edit targets content in one of those story ranges, iterate `oDoc.StoryRanges` or explicitly address `oDoc.Footnotes(i).Range.Find` / `oDoc.Endnotes(i).Range.Find`. Flag this to the writer before proceeding so they can confirm the edit should run against the non-body story.
 - **When scoping a macro to a specific section**, read the exact heading text directly from the `.md` file (`#` markers); use these as bounding anchors in the macro. If no `.md` file is provided, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text.
 - Do not modify the guide files during the session. Collect pending updates and apply them only at session end after the writer confirms.
 - At the end of each session, update guide files as needed:
@@ -108,17 +109,23 @@ Verify that none of the proposed edits or macro replacement strings introduce ne
 
 ## Types of Edits to Consider
 
-- Parallel structure violations
-- Unnecessary hedges ("are known to", "it should be noted that")
-- Contradictory phrasing (e.g., mixing passive/active framing in the same clause)
-- Colloquial or imprecise terms that have standard technical equivalents
-- Informal punctuation (slashes in place of "and"/"or")
-- Unexplained jargon or acronyms
-- Awkward parenthetical constructions that disrupt sentence flow
-- Redundant phrasing
-- Passive voice where active is clearer (acceptable in Methods sections)
-- Citation punctuation errors (e.g., missing period after "al" in "et al") are acceptable to correct; do not alter citation style, numbering format, or author–year conventions
-- **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do.
+Each entry is tagged with the lowest aggressiveness level at which it should be flagged: **[C]** = Conservative and above, **[S]** = Standard and above, **[X]** = Comprehensive only. At a given level, apply every tag at or below it (Standard applies [C] and [S]; Comprehensive applies all three).
+
+- **[C]** Grammar errors, spelling, and typographical errors
+- **[C]** Contradictory phrasing (e.g., mixing passive/active framing in the same clause)
+- **[C]** Undefined acronyms on first use
+- **[C]** Citation punctuation errors (e.g., missing period after "al" in "et al") — do not alter citation style, numbering format, or author–year conventions
+- **[S]** Parallel structure violations
+- **[S]** Unnecessary hedges ("are known to", "it should be noted that")
+- **[S]** Colloquial or imprecise terms that have standard technical equivalents
+- **[S]** Informal punctuation (slashes in place of "and"/"or")
+- **[S]** Redundant phrasing
+- **[S]** Unexplained jargon (non-acronym)
+- **[X]** Awkward parenthetical constructions that disrupt sentence flow
+- **[X]** Passive voice where active is clearer (passive is acceptable in Methods sections regardless of level)
+- **[X]** Sentence-level restructuring for flow and cadence
+- **[X]** Word-choice improvements beyond standard technical equivalents
+- **(all levels)** **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do.
 
 Edits should feel surgical; preserve the writer's existing voice. Do not paraphrase for the sake of paraphrasing.
 
@@ -129,26 +136,25 @@ Edits should feel surgical; preserve the writer's existing voice. Do not paraphr
 If any of the four `.md` guide files are missing from the workspace, create them with the structure below. For `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`, ask the writer first whether they have cross-project versions to bring in.
 
 ### `GRAMMATICAL_RULES_FORWARD.md` (document-scoped)
-Section headers, all tables empty on creation:
+Section headers only; all section bodies empty on creation. Use bullet lists (not tables) for every section — one bullet per rule or acronym, with the originating section in brackets where relevant:
 - Units and Measurements
 - Proper Nouns and Capitalization
-- Terminology Preferences (table: Avoid | Prefer | Reason)
+- Terminology Preferences — format: `- "avoid term" → "prefer term" (reason)`
 - Sentence Structure Preferences
 - Citation Style
 - Tense
 - Voice and Person
-- Document-Specific Acronyms Defined (table: Acronym | Full term | First defined in section)
+- Document-Specific Acronyms Defined — format: `- [§X.Y] ACR = full term`
 
 ### `ITEMS_TO_CHECK.md` (document-scoped)
-Section headers, all tables empty on creation:
-- Acronyms Used — Needs First-Definition Check (table: Acronym | Full term | Flagged in section | Status)
-- Acronyms Assigned — Needs Usage and Re-definition Check (table: Acronym | Full term | Defined in section | Status)
+Section headers only; all section bodies empty on creation. Use bullet lists (not tables). Each item should include the originating section and enough context to resolve on the second pass. Suggested format: `- [§X.Y] <brief description> — <what to verify>`.
+- Acronyms Used — Needs First-Definition Check
+- Acronyms Assigned — Needs Usage and Re-definition Check
 - Cross-Reference Checks
 - Consistency Checks
 - Numeric Consistency
 - Reference List
-- Template for Logging an Item
-- Resolved Items
+- Resolved Items (move items here with a resolution note once confirmed)
 
 ### `AI_ERRORS_TO_AVOID.md` (cross-project, writer-owned)
 Section headers:

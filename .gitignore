@@ -1,0 +1,40 @@
+# =============================================================================
+# .gitignore for the AI Word Editing Workflow
+# =============================================================================
+# This workflow produces several files that should not be committed to git:
+#   - The Word document itself and dated backup copies
+#   - Pandoc Markdown exports of the document (lossy, regenerated each session)
+#   - Word lock files
+#
+# The guide files (agent.md, README.md, GRAMMATICAL_RULES_FORWARD.md,
+# ITEMS_TO_CHECK.md, AI_ERRORS_TO_AVOID.md, WRITING_LESSONS_LEARNED.md,
+# AI_WRITING_INDICATORS.md) are explicitly NOT ignored — they ARE the repo.
+# =============================================================================
+
+# Word documents (originals and dated backups)
+*.docx
+*.doc
+*.docm
+*.dotx
+*.dotm
+
+# Word lock / temporary files
+~$*
+*.tmp
+
+# Pandoc Markdown exports of the Word document.
+# The guide files above use .md too, so we cannot blanket-ignore *.md.
+# Add your specific document export filename(s) below to keep them out of git:
+#
+# MyDocument.md
+# MyReport.md
+
+# Media folder created by pandoc when it extracts embedded images
+media/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo

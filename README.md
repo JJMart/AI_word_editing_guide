@@ -127,6 +127,6 @@ The agent will also read [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORW
 - If the AI's Find/Replace fails on a character (e.g., en dash, middle dot, smart apostrophe), the document likely uses a Unicode character where a plain ASCII one was assumed — the AI should use `ChrW()` codes rather than bare characters for anything above ASCII 255
 - For contractions and possessives in VBA search strings, `ChrW(8217)` must be used for the apostrophe — Word AutoCorrect replaces straight apostrophes with curly ones that bare `'` will not match
 - Save the Word document after pasting VBA and *before* running `Alt+F8`, or the macro may not appear in the run list
-- Do not ask the AI to modify figure or table captions if you use Word's automatic caption numbering — editing those can break cross-references throughout the document
+- When asking the AI to edit a figure or table caption, expect it to edit only the caption *text* (the words after `Figure N:` or `Table N:`). It will leave the label and number alone so automatic numbering and cross-references are not disturbed
 
 > **Note for maintainers:** `README.md` is the writer-facing summary of [`agent.md`](agent.md). If writer-relevant workflow steps or file descriptions are updated in [`agent.md`](agent.md), update this file to match.

@@ -1,79 +1,61 @@
 # Items to Check — Second Pass
 
-This file accumulates items that should be verified on a second pass after all sections have been edited. Load this file at the start of the second-pass session.
+Items that should be verified on a second pass after all sections have been edited. The AI reads this file at the start of every session to avoid re-flagging resolved items, and at the start of the second-pass session to drive the review agenda.
 
-Each item includes the section where it was flagged and a description of what to verify.
+Each section uses a bullet list (not a table). Suggested format: `- [§X.Y] <brief description> — <what to verify>`. Move items to **Resolved Items** with a short resolution note once confirmed.
 
 ---
 
 ## Acronyms Used — Needs First-Definition Check
 
-These acronyms were used in a section but their first definition location has not been confirmed. On second pass, verify each is spelled out on first use *prior* to the section where it was flagged.
+Acronyms used in a section whose first-definition location has not yet been confirmed. On second pass, verify each is spelled out on first use *prior* to the section where it was flagged.
 
-| Acronym | Full term | Flagged in section | Status |
-|---|---|---|---|
-| *(none yet)* | | | |
+*(empty — add items as they are flagged)*
 
 ---
 
 ## Acronyms Assigned — Needs Usage and Re-definition Check
 
-These acronyms were defined (assigned) in a section. On second pass, verify: (1) the acronym is actually used after it is defined, and (2) it is not defined again in a later section.
+Acronyms defined (assigned) in a section. On second pass, verify:
+1. the acronym is actually used after it is defined, and
+2. it is not defined again in a later section.
 
-| Acronym | Full term | Defined in section | Status |
-|---|---|---|---|
-| *(none yet)* | | | |
+*(empty — add items as they are flagged)*
 
 ---
 
 ## Cross-Reference Checks
 
-*(Add items here when a figure, table, or section reference should be verified for accuracy)*
+Items where a figure, table, or section reference should be verified for accuracy.
 
-| Reference | Context | Flagged in section | Status |
-|---|---|---|---|
-| *(none yet)* | | | |
+*(empty — add items as they are flagged)*
 
 ---
 
 ## Consistency Checks
 
-*(Add items here when a value, term, or claim appears in multiple sections and should be verified for consistency)*
+Items where a value, term, or claim appears in multiple sections and should be verified for consistency.
 
-| Item | Context | Sections involved | Status |
-|---|---|---|---|
-| *(none yet)* | | | |
+*(empty — add items as they are flagged)*
 
 ---
 
 ## Numeric Consistency
 
-Verify that numeric values cited in the text match those in tables and figures.
+Numeric values cited in the text that should match tables, figures, or other sections.
 
-| Value | Text location | Table/Figure reference | Status |
-|---|---|---|---|
-| *(none yet)* | | | |
+*(empty — add items as they are flagged)*
 
 ---
 
 ## Reference List
 
-Verify that all in-text citations appear in the reference list and all reference list entries are cited in the text. Note: if the writer provided the reference list during the first-pass session, this may already be resolved.
+Issues with in-text citations vs. reference list entries. May already be resolved if the writer provided the reference list during a first-pass session.
 
-| Issue | Detail | Status |
-|---|---|---|
-| *(none yet)* | | |
-
----
-
-## Template for Logging an Item
-
-```
-| [brief description] | [context] | [section] | Unresolved |
-```
+*(empty — add items as they are flagged)*
 
 ---
 
 ## Resolved Items
 
-*(Move items here once confirmed, with a note on resolution)*
+*(empty — move items here once confirmed, with a short resolution note)*
