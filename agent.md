@@ -31,11 +31,28 @@ If a section has no errors and no stylistic issues above the requested aggressiv
 
 ## Writing VBA Macros
 
-Every edit is implemented as a Word VBA macro using `Find`/`Replace` with tracked changes.
+Every edit is implemented as a Word VBA macro. Most edits are `Find`/`Replace` with tracked changes; structural edits use the documented insertion, paragraph-split, reordering, and anchor-range-delete patterns.
 
 ### Use the canonical template
 
-**Always start from `VBA_MACRO_TEMPLATE.bas` in the workspace root.** Copy the full template, rename the `Sub` to reflect the section being edited (e.g. `ReviewEdits_2_1_Methods`), and fill **only** the EDIT BLOCKS region. Do not modify the HEADER or FOOTER regions — they are required for consistent per-edit reporting.
+**Always start from `VBA_MACRO_TEMPLATE.bas` in the workspace root.** Copy the `ReviewEdits_SectionName` sub, rename it to reflect the section being edited (e.g. `ReviewEdits_2_1_Methods`), and fill **only** the EDIT BLOCKS region. Do not modify the HEADER or FOOTER regions — they are required for consistent per-edit reporting. The template also contains a `TestSetup` sub (a one-time verification macro for first-run writers) and a "Reference Patterns" section with skeletons for all five edit types; do not include those in the writer-delivered macro.
+
+### Supported edit types
+
+1. **Find/Replace** — text substitution. The default pattern; use for rewording, removing hedges, fixing typos, terminology swaps.
+2. **Insertion** — add text at an anchor. Use for missing topic sentences, transitional phrases, missing citation anchors. Pattern: `Find + Collapse wdCollapseStart/End + InsertBefore/InsertAfter`.
+3. **Paragraph split** — break one paragraph into two. Pattern: `Find + Collapse wdCollapseStart + InsertBefore vbCr`.
+4. **Reordering** — move a sentence or clause. Pattern: find source, copy text, delete source, find destination, insert. Produces a tracked delete + tracked insert pair; tell the writer to accept both halves together or reject both — accepting only one leaves the document in a broken state.
+5. **Anchor-range delete** — long deletion beyond the ~255 char `Find.Text` limit. Pattern: find start anchor + find end anchor + build range + `.Delete`.
+
+Full code skeletons for all five patterns are in the "Reference Patterns" section at the bottom of `VBA_MACRO_TEMPLATE.bas`. Copy the relevant pattern into the EDIT BLOCKS region and adapt.
+
+### Structural edits are riskier than Find/Replace
+
+Insertion, paragraph split, reordering, and anchor-range-delete change document structure, not just text. Two rules:
+
+1. **Run structural edits in their own macro, not batched with Find/Replace edits.** If the writer needs to reject the macro and re-try, they should not lose unrelated text-substitution edits in the process.
+2. **Flag structural edits explicitly when proposing them.** Label each proposed edit as `[text]`, `[insert]`, `[split]`, `[move]`, or `[delete-range]` in the rationale so the writer knows what kind of change is coming. The writer should be able to decline a structural edit and ask for a Find/Replace rewording instead.
 
 ### Per-edit success/failure reporting (required)
 

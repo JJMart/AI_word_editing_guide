@@ -66,6 +66,8 @@ Before each session, convert your `.docx` to Markdown using pandoc so the AI can
 
 > **Enable macros first:** `File → Options → Trust Center → Trust Center Settings → Macro Settings → Enable all macros` (or "Enable with notification")
 
+> **First-run verification:** If you are running this workflow on a new machine, paste the contents of [`VBA_MACRO_TEMPLATE.bas`](VBA_MACRO_TEMPLATE.bas) into a Word module and run the `TestSetup` macro. It inserts a visible marker as a tracked change, immediately undoes it, and shows a MsgBox confirming that macros are enabled, Track Changes works, and tracked edits can be applied and reverted. Run this only once per machine; you do not need to run it before every editing session.
+
 ---
 
 ## Session Workflow
@@ -124,6 +126,7 @@ The agent will also read [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORW
 - Work **one section per chat session** to avoid context window degradation. Target roughly 500–3,000 words per session; adjust heading level accordingly
 - Track Changes does not need to be on manually — the macro enables it; if already on, this is harmless
 - **Always review the per-edit MsgBox report** before accepting tracked changes. Every `[FAIL]` line means an anchor was not found — investigate the cause (smart apostrophe, special Unicode, formatted content, wrong anchor) before moving on
+- **Structural edits come in their own macro.** For non-text edits (insertions, paragraph splits, sentence reordering, long deletions), the AI delivers these in a separate macro from text substitutions. This way, if you reject a structural edit, you do not also lose unrelated text-substitution edits. Proposed edits will be labeled with `[text]`, `[insert]`, `[split]`, `[move]`, or `[delete-range]` so you know what kind of change is coming before running the macro
 - If the AI's Find/Replace fails on a character (e.g., en dash, middle dot, smart apostrophe), the document likely uses a Unicode character where a plain ASCII one was assumed — the AI should use `ChrW()` codes rather than bare characters for anything above ASCII 255
 - For contractions and possessives in VBA search strings, `ChrW(8217)` must be used for the apostrophe — Word AutoCorrect replaces straight apostrophes with curly ones that bare `'` will not match
 - Save the Word document after pasting VBA and *before* running `Alt+F8`, or the macro may not appear in the run list
