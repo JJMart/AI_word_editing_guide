@@ -24,8 +24,10 @@ A structured workflow for editing Microsoft Word documents using an AI assistant
 | `ITEMS_TO_CHECK.md` | Document project | Running checklist of items to verify on a second pass: undefined acronyms, unused acronyms, cross-reference accuracy, numeric consistency, and reference list completeness. |
 | `AI_ERRORS_TO_AVOID.md` | **Cross-project** | Living log of errors encountered during AI-assisted VBA editing sessions. Carry this forward to future projects and add to it over time. |
 | `WRITING_LESSONS_LEARNED.md` | **Cross-project** | Living document of general writing insights gained through AI-assisted editing. Not document-specific — carry it forward across all projects. |
+| `AI_WRITING_INDICATORS.md` | **Cross-project** | Reference document on indicators of AI-generated writing (vocabulary, structure, tone, markdown-first artifacts). The AI reads Section 8 (Quick Reference Checklist) after proposing edits and after writing a macro to flag AI indicators in the original text and verify none are introduced by the edits. |
+| `agent.md` | **Cross-project** | Single source of truth for AI agent instructions. Agent-specific files (`.github/copilot-instructions.md`, `.roo/rules.md`, etc.) redirect here. Update this file when workflow rules change. |
 
-> **Cross-project files** (`AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`) are writer-owned and should not be reset when starting a new document project. Copy them into the new project folder and continue adding to them.
+> **Cross-project files** (`AI_ERRORS_TO_AVOID.md`, `WRITING_LESSONS_LEARNED.md`, `AI_WRITING_INDICATORS.md`, and `agent.md`) are writer-owned and should not be reset when starting a new document project. Copy them into the new project folder and continue adding to them.
 
 ---
 
@@ -72,8 +74,8 @@ Before each session, convert your `.docx` to Markdown using pandoc so the AI can
 2. Convert the document to Markdown using the pandoc command above and place the `.md` file in the project folder
 3. Open a new AI chat session
 4. Attach the guide files:
-   - **VS Code + GitHub Copilot users:** no attachment needed — all guide files are read automatically from the workspace
-   - **All other AI tools (ChatGPT, Claude, etc.):** attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` — or, if your tool supports a persistent system prompt file (e.g., `claude.md` for Claude Projects), copy the contents of `.github/copilot-instructions.md` into that file so the AI behavior rules load automatically and you only need to attach `GRAMMATICAL_RULES_FORWARD.md` and `ITEMS_TO_CHECK.md` each session
+   - **VS Code users (Copilot, Roo Code, or similar):** no attachment needed — `agent.md` and the other guide files are read automatically from the workspace via the agent-specific redirect file (`.github/copilot-instructions.md` for Copilot, `.roo/rules.md` for Roo Code)
+   - **All other AI tools (ChatGPT, Claude, etc.):** attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` — or, if your tool supports a persistent system prompt file (e.g., `claude.md` for Claude Projects), copy the contents of `agent.md` into that file so the AI behavior rules load automatically and you only need to attach `GRAMMATICAL_RULES_FORWARD.md` and `ITEMS_TO_CHECK.md` each session
 5. Tell the AI:
    - The **filename** of the `.md` export and the **section name and number** to work on
    - The **document type** (peer-reviewed paper, technical report, grant proposal, etc.)
@@ -100,13 +102,21 @@ After all sections are edited, run a dedicated session using `ITEMS_TO_CHECK.md`
 
 ---
 
-## VS Code + GitHub Copilot Users
+## VS Code AI Agent Users (Copilot, Roo Code, etc.)
 
-If you are using this workflow in VS Code with GitHub Copilot Chat, the file `.github/copilot-instructions.md` is included in this repository. It is automatically injected into every Copilot Chat session when you open this folder as a workspace.
+This workflow is agent-agnostic. All AI behavior rules live in `agent.md` at the project root. Agent-specific files simply redirect to it:
 
-Copilot will also read `GRAMMATICAL_RULES_FORWARD.md`, `ITEMS_TO_CHECK.md`, `WRITING_LESSONS_LEARNED.md`, and `AI_ERRORS_TO_AVOID.md` automatically at the start of each session using its workspace file tools — **no manual file attachment is needed at all**. Simply tell Copilot the `.md` filename and which section to work on.
+| Agent | Config file | Notes |
+|---|---|---|
+| GitHub Copilot | `.github/copilot-instructions.md` | Auto-injected into every Copilot Chat session when the folder is open as a workspace |
+| Roo Code | `.roo/rules.md` | Loaded automatically by Roo Code for every session in this workspace |
+| Other VS Code agents | Create the agent's config file with one line: *"Read `agent.md` and follow all instructions found there."* | |
 
-If you are using a different AI tool (ChatGPT, Claude, etc.), attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` manually at the start of each session instead. If your tool supports a persistent system prompt file (e.g., `claude.md` for Claude Projects), copy the contents of `.github/copilot-instructions.md` into that file so the core AI behavior rules load automatically every session.
+The agent will also read `GRAMMATICAL_RULES_FORWARD.md`, `ITEMS_TO_CHECK.md`, `WRITING_LESSONS_LEARNED.md`, and `AI_ERRORS_TO_AVOID.md` automatically at the start of each session — **no manual file attachment is needed**. Simply tell the AI the `.md` filename and which section to work on.
+
+**To add a new AI agent:** create its config file in the location the agent expects, containing only: `Read agent.md in the workspace root and follow all instructions found there.`
+
+If you are using a non-VS Code AI tool (ChatGPT, Claude, etc.), attach `AI_WORD_EDITING_GUIDE.md`, `GRAMMATICAL_RULES_FORWARD.md`, and `ITEMS_TO_CHECK.md` manually at the start of each session. If your tool supports a persistent system prompt file (e.g., `claude.md` for Claude Projects), copy the contents of `agent.md` into that file so the core AI behavior rules load automatically every session.
 
 ---
 

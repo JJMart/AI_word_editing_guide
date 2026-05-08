@@ -132,9 +132,9 @@ These five files live in the same folder as the document being edited. If any ar
 
 ---
 
-### Copilot Instructions Sync Note
+### Agent Instructions Sync Note
 
-`.github/copilot-instructions.md` is a condensed version of the AI rules in this file and is automatically loaded by GitHub Copilot Chat in VS Code. If a new rule is added to this guide that the AI should always follow — especially anything in General Workflow, VBA Writing Rules, or Types of Edits to Consider — add the corresponding entry to `copilot-instructions.md` as well so it takes effect automatically without manual file attachment.
+`agent.md` is a condensed version of the AI rules in this file and is the single source of truth for all AI agents (GitHub Copilot, Roo Code, etc.). Agent-specific files (`.github/copilot-instructions.md`, `.roo/rules.md`, etc.) simply redirect to `agent.md`. If a new rule is added to this guide that the AI should always follow — especially anything in General Workflow, VBA Writing Rules, Types of Edits to Consider, or AI Writing Indicators Check — add the corresponding entry to `agent.md` as well so it takes effect automatically without manual file attachment.
 
 ### README Sync Note
 
@@ -144,6 +144,10 @@ These five files live in the same folder as the document being edited. If any ar
 
 ### Markdown Rendering Note
 - Two `~` characters separated by text in the chat may render as ~~strikethrough~~ due to Markdown formatting. This is a display artifact only and does not affect the VBA string literals.
+
+### AI Writing Indicators Check
+
+After proposing edits for a section **and** after writing a VBA macro, check the proposed changes against the Quick Reference Checklist in Section 8 of `AI_WRITING_INDICATORS.md`. Flag any AI writing indicators that appear in the original text (so the writer is aware) and verify that none of the proposed edits or macro replacements introduce new AI writing indicators. Do not load the full `AI_WRITING_INDICATORS.md` file at session start — read it only when performing this check.
 
 ### Types of Edits to Consider
 - Parallel structure violations
