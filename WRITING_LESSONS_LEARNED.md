@@ -14,6 +14,8 @@ This is a living document of general lessons learned from AI-assisted document e
 
 ## VBA Macro Editing
 
+- When removing bold formatting from specific phrases, use `Find` with `.Font.Bold = True` as a search constraint and `Replacement.Font.Bold = False` with the same text as the replacement. This produces a tracked formatting revision when `TrackRevisions = True`. Bold-removal edits can be batched with text edits in the same macro.
+
 - The AI-assisted VBA workflow (find/replace with track changes) is reliable when search strings are sufficiently unique; errors most often stem from non-unique or special-character-mismatched strings
 - Always save the Word document after pasting VBA into the editor and before running `Alt+F8` — otherwise the macro may not appear in the run list
 - Setting `TrackRevisions = True` in a macro when track changes is already on is harmless (idempotent) — safe to always include

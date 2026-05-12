@@ -77,9 +77,15 @@ The same applies to left single quotation mark (U+2018): `ChrW(8216)`. Never use
 ---
 
 ### `Attribute VB_Name` line causes compile syntax error on paste
-**What happened:** The macro file began with `Attribute VB_Name = "MacroName"`.  
-**Why it failed:** This attribute is a file-level declaration handled internally by VBA. It is only valid when a module is **imported** via File > Import File. Pasting the line directly into the VBA editor causes an immediate compile syntax error.  
+**What happened:** The macro file began with `Attribute VB_Name = "MacroName"`.
+**Why it failed:** This attribute is a file-level declaration handled internally by VBA. It is only valid when a module is **imported** via File > Import File. Pasting the line directly into the VBA editor causes an immediate compile syntax error.
 **Fix / how to avoid:** Never include `Attribute VB_Name = ...` in generated macro code. Start the file with the comment block (`' ===...`) or directly with `Sub MacroName()`.
+
+### Tracked-change revision boundary between search string components; Find fails on anchor spanning boundary
+**What happened:** A multi-part search string (e.g., `"some text" & ChrW(8212) & "more text"`) failed to match even though all individual characters were confirmed present by a diagnostic macro.
+**Why it failed:** A tracked-change revision boundary from a prior co-author edit existed between two adjacent characters in the document. Word's `Find` engine cannot match a search string that spans an internal revision boundary — the characters are in different revision runs, so the concatenated string never matches as a unit. This is distinct from a character-type mismatch: the characters themselves are correct; the boundary is the problem.
+**Why this happens in collaborative documents:** When a document is converted to `.md` using `--track-changes=accept`, the markdown shows clean accepted text. However, the source Word document retains all unaccepted tracked changes from co-author reviews. Any location where a reviewer made a tracked insertion or deletion creates a revision boundary in the document story that `Find` cannot cross. The `.md` export does not reveal these boundaries — the text looks continuous.
+**Fix / how to avoid:** When a Find anchor crosses a tracked-change revision boundary, shorten the search string to start or end within a single revision run, avoiding the boundary. To diagnose whether a boundary exists, write a short VBA loop that reads `AscW` character-by-character after a known anchor — boundaries appear as empty ranges (zero-length `oChar.Text`). If the character code matches what you're searching for, the problem is a boundary, not the character. **General rule:** If a macro consistently fails on anchors that appear correct in the `.md`, suspect tracked-change boundaries at those locations and shorten the search anchor.
 
 ---
 
@@ -113,5 +119,11 @@ The same applies to left single quotation mark (U+2018): `ChrW(8216)`. Never use
 **Fix:** Save the document (`Ctrl+S`) after pasting into the VBA editor and before running Alt+F8.
 
 ### Tilde strikethrough rendering in chat
-**Issue:** Two `~` characters separated by text in a chat message (e.g., two approximate values like `~0.06` and `~0.12` in the same sentence) can trigger Markdown strikethrough formatting, making the text between them appear struck through.  
+**Issue:** Two `~` characters separated by text in a chat message (e.g., two approximate values like `~0.06` and `~0.12` in the same sentence) can trigger Markdown strikethrough formatting, making the text between them appear struck through.
 **Fix:** This is a display artifact in the chat only — it does not affect the VBA string literals. No action needed on the macro.
+
+### Tracked-change boundaries in collaborative documents cause Find to fail on correct anchors
+**Issue:** When a document has unaccepted tracked changes from co-author reviews, those revisions create internal revision boundaries in the document story. Word's `Find` engine cannot match a search string that spans one of these boundaries — the string looks correct in the `.md` export (which used `--track-changes=accept`) but fails at runtime because the characters are in different revision runs.
+**Symptoms:** A `Find.Execute` returns False even though the search string exactly matches the visible text. The `AscW` of individual characters is correct when checked by diagnostic.
+**Fix:** Shorten the search string to start or end within a single revision run, avoiding the boundary. To diagnose, write a short VBA loop reading `AscW` character-by-character after a known anchor — boundaries appear as zero-length ranges (empty `oChar.Text`). This issue only affects documents with unaccepted tracked changes — it does not occur if all changes are accepted before running macros.
+**Additional pattern — possessives:** Smart apostrophes in possessives (e.g., `"word" & ChrW(8217) & "s"`) are a common boundary location when a co-author modified text near a possessive. If a Find anchor fails on a possessive, shorten the anchor to start after the apostrophe+s rather than including the possessive noun in the search string.
