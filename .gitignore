@@ -6,7 +6,7 @@
 #   - Pandoc Markdown exports of the document (lossy, regenerated each session)
 #   - Word lock files
 #
-# The guide files (agent.md, README.md, GRAMMATICAL_RULES_FORWARD.md,
+# The guide files (AGENTS.md, README.md, GRAMMATICAL_RULES_FORWARD.md,
 # ITEMS_TO_CHECK.md, AI_ERRORS_TO_AVOID.md, WRITING_LESSONS_LEARNED.md,
 # AI_WRITING_INDICATORS.md) are explicitly NOT ignored — they ARE the repo.
 # =============================================================================

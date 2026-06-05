@@ -26,9 +26,14 @@ A structured workflow for editing Microsoft Word documents using an AI assistant
 | [`AI_ERRORS_TO_AVOID.md`](AI_ERRORS_TO_AVOID.md) | **Cross-project** | Living log of errors encountered during AI-assisted VBA editing sessions. Carry forward to future projects and add to it over time. |
 | [`WRITING_LESSONS_LEARNED.md`](WRITING_LESSONS_LEARNED.md) | **Cross-project** | Living document of general writing insights gained through AI-assisted editing. Carry forward across all projects. |
 | [`AI_WRITING_INDICATORS.md`](AI_WRITING_INDICATORS.md) | **Cross-project** | Reference on indicators of AI-generated writing. The AI reads Section 8 (Quick Reference Checklist) after proposing edits and after writing a macro to flag AI indicators in the original text and verify none are introduced by the edits. |
-| `pypdf` (Python package) | Tool | Extracts plain text from PDF reference documents (pandoc cannot read PDF). Install once with `pip install pypdf`. See [Converting a PDF Reference Document to Text](#converting-a-pdf-reference-document-to-text) below. |
-
 > **Cross-project files** are writer-owned and should not be reset when starting a new document project. Copy them into the new project folder and continue adding to them.
+
+### External tools (not files in this repository)
+
+| Tool | Purpose |
+|---|---|
+| pandoc | Converts the `.docx` to Markdown for the AI to read. See [Converting the Document to Markdown](#converting-the-document-to-markdown). |
+| `pypdf` (Python package) | Extracts plain text from PDF reference documents (pandoc cannot read PDF). Install once with `pip install pypdf`. See [Converting a PDF Reference Document to Text](#converting-a-pdf-reference-document-to-text). |
 
 ---
 
@@ -67,9 +72,9 @@ When working on proposals, reports, or other documents that must align with an e
    ```
 2. Extract the text from the PDF:
    ```powershell
-   python -c "import pypdf; r=pypdf.PdfReader('reference.pdf'); print('\n'.join(p.extract_text() for p in r.pages))" > reference.txt
+   python -c "import pypdf; r=pypdf.PdfReader('reference.pdf'); print('\n'.join((p.extract_text() or '') for p in r.pages))" > reference.txt
    ```
-   Replace `reference.pdf` with your file name. The output `reference.txt` will be placed in the current directory.
+   Replace `reference.pdf` with your file name. The output `reference.txt` will be placed in the current directory. The `or ''` guard keeps the command from crashing on image-only or scanned pages (where `extract_text()` returns nothing) — those pages simply come through empty, which the AI's quality check will flag.
 3. Place `reference.txt` in the project folder alongside the other guide files.
 4. Tell the AI the filename and ask it to read the file and verify extraction quality before using it as reference context. The AI will check whether the text is coherent and flag any sections that appear garbled or empty — you do not need to review the raw `.txt` yourself.
 

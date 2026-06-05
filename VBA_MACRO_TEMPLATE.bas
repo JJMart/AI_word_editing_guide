@@ -62,6 +62,24 @@ Sub TestSetup()
     ' revision record, leaving the document identical to before.
     oDoc.Undo
 
+    ' Belt-and-braces: a single Undo normally reverts the insertion, but if
+    ' AutoCorrect/AutoFormat split the insertion into more than one undo unit,
+    ' Undo could leave a fragment. Explicitly search for any remaining marker
+    ' text and delete it so the document is guaranteed clean.
+    Dim oLeftover As Range
+    Set oLeftover = oDoc.Content.Duplicate
+    With oLeftover.Find
+        .ClearFormatting
+        .Text = "[[VBA_SETUP_TEST_MARKER]]"
+        .Wrap = wdFindStop
+        Do While .Execute
+            oLeftover.Delete
+            Set oLeftover = oDoc.Content.Duplicate
+            .Text = "[[VBA_SETUP_TEST_MARKER]]"
+            .Wrap = wdFindStop
+        Loop
+    End With
+
     ' Restore the writer's original TrackRevisions setting.
     oDoc.TrackRevisions = bTracked
 
@@ -128,6 +146,18 @@ Sub ReviewEdits_SectionName()
     ' of each edit type. The most common is Find/Replace:
     '
     '     ' Edit 1: <one-line rationale>
+    '     ' Pre-count occurrences so over-replacement (non-unique anchor) is visible.
+    '     Dim nHits1 As Long
+    '     nHits1 = 0
+    '     With oDoc.Content.Duplicate.Find
+    '         .ClearFormatting
+    '         .Text = "<search text with enough context to be unique>"
+    '         .Wrap = wdFindStop
+    '         Do While .Execute
+    '             nHits1 = nHits1 + 1
+    '             .Parent.Collapse wdCollapseEnd
+    '         Loop
+    '     End With
     '     With oDoc.Content.Find
     '         .ClearFormatting
     '         .Replacement.ClearFormatting
@@ -140,7 +170,7 @@ Sub ReviewEdits_SectionName()
     '         .Forward = True
     '         If .Execute(Replace:=wdReplaceAll) Then
     '             nOK = nOK + 1
-    '             sMsg = sMsg & "[OK]   Edit 1: <short description>" & vbCrLf
+    '             sMsg = sMsg & "[OK]   Edit 1: <short description> (replaced " & nHits1 & ", expected 1)" & vbCrLf
     '         Else
     '             nFail = nFail + 1
     '             sMsg = sMsg & "[FAIL] Edit 1: anchor not found - <short description>" & vbCrLf
@@ -184,6 +214,20 @@ End Sub
 ' Use for: rewording, removing hedges, fixing typos, swapping terminology.
 '
 ' ' Edit N: <rationale>
+' ' Pre-count occurrences so over-replacement (non-unique anchor) is visible.
+' ' wdReplaceAll returns True for one OR many replacements, so without a count
+' ' a single [OK] could hide accidental edits at unintended locations.
+' Dim nHitsN As Long
+' nHitsN = 0
+' With oDoc.Content.Duplicate.Find
+'     .ClearFormatting
+'     .Text = "<unique search text>"
+'     .Wrap = wdFindStop
+'     Do While .Execute
+'         nHitsN = nHitsN + 1
+'         .Parent.Collapse wdCollapseEnd
+'     Loop
+' End With
 ' With oDoc.Content.Find
 '     .ClearFormatting
 '     .Replacement.ClearFormatting
@@ -196,12 +240,17 @@ End Sub
 '     .Forward = True
 '     If .Execute(Replace:=wdReplaceAll) Then
 '         nOK = nOK + 1
-'         sMsg = sMsg & "[OK]   Edit N: <description>" & vbCrLf
+'         sMsg = sMsg & "[OK]   Edit N: <description> (replaced " & nHitsN & ", expected 1)" & vbCrLf
 '     Else
 '         nFail = nFail + 1
 '         sMsg = sMsg & "[FAIL] Edit N: anchor not found - <description>" & vbCrLf
 '     End If
 ' End With
+'
+' NOTE: if the reported count exceeds the expected number, the anchor was not
+' unique - the writer must inspect every changed location. When uniqueness is
+' certain, the pre-count loop may be omitted and the expected count simply
+' stated in the [OK] string (e.g. "...expected 1)").
 
 
 ' --- PATTERN 2: Insertion (add text at an anchor) ---------------------------
@@ -274,9 +323,16 @@ End Sub
 ' changes view. Tell the writer to accept both halves together (or reject
 ' both) - accepting only one half will leave the document in a broken state.
 '
+' SAFETY: confirm BOTH the source and destination anchors exist BEFORE
+' deleting anything. Deleting the source first and only then searching for
+' the destination risks a one-sided tracked deletion if the destination
+' anchor is mistyped or absent. Mirror the anchor-range-delete pattern below:
+' locate both, verify both, then mutate.
+'
 ' ' Edit N: move "Results are summarized in Table 3." to end of paragraph
 ' Dim oMoveSrc As Range, oMoveDst As Range
 ' Dim sMoveText As String
+' Dim bSrc As Boolean, bDst As Boolean
 ' Set oMoveSrc = oDoc.Content.Duplicate
 ' With oMoveSrc.Find
 '     .ClearFormatting
@@ -284,31 +340,44 @@ End Sub
 '     .MatchCase = True
 '     .Wrap = wdFindStop
 '     .Forward = True
-'     If .Execute Then
-'         sMoveText = oMoveSrc.Text
-'         oMoveSrc.Delete
-'         Set oMoveDst = oDoc.Content.Duplicate
-'         With oMoveDst.Find
-'             .ClearFormatting
-'             .Text = "<unique anchor at new position>"
-'             .MatchCase = True
-'             .Wrap = wdFindStop
-'             .Forward = True
-'             If .Execute Then
-'                 oMoveDst.Collapse wdCollapseEnd
-'                 oMoveDst.InsertAfter " " & sMoveText
-'                 nOK = nOK + 1
-'                 sMsg = sMsg & "[OK]   Edit N: moved sentence" & vbCrLf
-'             Else
-'                 nFail = nFail + 1
-'                 sMsg = sMsg & "[FAIL] Edit N: destination anchor not found (source already deleted)" & vbCrLf
-'             End If
-'         End With
-'     Else
-'         nFail = nFail + 1
-'         sMsg = sMsg & "[FAIL] Edit N: source anchor not found - move sentence" & vbCrLf
-'     End If
+'     bSrc = .Execute
 ' End With
+' Set oMoveDst = oDoc.Content.Duplicate
+' With oMoveDst.Find
+'     .ClearFormatting
+'     .Text = "<unique anchor at new position>"
+'     .MatchCase = True
+'     .Wrap = wdFindStop
+'     .Forward = True
+'     bDst = .Execute
+' End With
+' If bSrc And bDst Then
+'     ' Both anchors confirmed - now it is safe to mutate.
+'     sMoveText = oMoveSrc.Text
+'     oMoveSrc.Delete
+'     ' Re-find the destination after the deletion shifts character positions,
+'     ' so the insertion point is still valid.
+'     Set oMoveDst = oDoc.Content.Duplicate
+'     With oMoveDst.Find
+'         .ClearFormatting
+'         .Text = "<unique anchor at new position>"
+'         .MatchCase = True
+'         .Wrap = wdFindStop
+'         .Forward = True
+'         If .Execute Then
+'             oMoveDst.Collapse wdCollapseEnd
+'             oMoveDst.InsertAfter " " & sMoveText
+'             nOK = nOK + 1
+'             sMsg = sMsg & "[OK]   Edit N: moved sentence" & vbCrLf
+'         Else
+'             nFail = nFail + 1
+'             sMsg = sMsg & "[FAIL] Edit N: destination lost after delete - REJECT this macro and re-try" & vbCrLf
+'         End If
+'     End With
+' Else
+'     nFail = nFail + 1
+'     sMsg = sMsg & "[FAIL] Edit N: move aborted before any change (source=" & bSrc & ", dest=" & bDst & ")" & vbCrLf
+' End If
 
 
 ' --- PATTERN 5: Anchor-range delete (long deletion > 200 chars) -------------

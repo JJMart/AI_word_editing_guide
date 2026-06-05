@@ -12,10 +12,10 @@ Before reviewing pasted text or suggesting any edits, ask the writer any clarify
 
 - **Section name and number** — required for logging acronyms and check items correctly
 - **Document type** (peer-reviewed journal article, technical report, grant proposal, etc.) — affects tone, passive voice tolerance, and citation style
-- **Edit aggressiveness level** — if not stated, default to *Standard*:
-  - *Conservative*: clear errors only (grammar, contradictions, undefined acronyms)
-  - *Standard*: errors plus style improvements (parallel structure, hedges, informal punctuation)
-  - *Comprehensive*: everything including flow, word choice, and sentence restructuring
+- **Edit aggressiveness level** — if not stated, default to *Standard*. The lists below are illustrative, not exhaustive — the authoritative item list is "Types of Edits to Consider" further down, tagged by level:
+  - *Conservative*: clear errors only (e.g., grammar, contradictions, undefined acronyms — all `[C]` items)
+  - *Standard*: errors plus style improvements (e.g., parallel structure, hedges, informal punctuation — all `[C]` and `[S]` items)
+  - *Comprehensive*: everything including flow, word choice, and sentence restructuring (all `[C]`, `[S]`, and `[X]` items)
 - **Intended tone** (formal/objective, persuasive, accessible to non-specialists)
 - **Section-specific conventions** (e.g., passive voice is expected in Methods)
 - **Intentional terms or abbreviations** that should not be changed
@@ -56,19 +56,38 @@ Insertion, paragraph split, reordering, and anchor-range-delete change document 
 
 ### Per-edit success/failure reporting (required)
 
-Every Find/Replace block must be wrapped in an `If .Execute(...) Then / Else` structure that writes one line to `sMsg`:
+Every Find/Replace block must be wrapped in an `If .Execute(...) Then / Else` structure that writes one line to `sMsg`. **Report the replacement count, not just success/failure** — `.Execute(Replace:=wdReplaceAll)` returns `True` whether it replaced one occurrence or many, so a bare `[OK]` hides accidental over-replacement when an anchor is not unique. Count the replacements and state the expected count so the writer can confirm:
 
 ```vb
-If .Execute(Replace:=wdReplaceAll) Then
-    nOK = nOK + 1
-    sMsg = sMsg & "[OK]   Edit 3: removed hedge 'it is important to note that'" & vbCrLf
-Else
-    nFail = nFail + 1
-    sMsg = sMsg & "[FAIL] Edit 3: anchor not found - removed hedge" & vbCrLf
-End If
+' Count occurrences first so over-replacement is visible.
+Dim nHits As Long
+nHits = 0
+With oDoc.Content.Duplicate.Find
+    .ClearFormatting
+    .Text = "it is important to note that "
+    .Wrap = wdFindStop
+    Do While .Execute
+        nHits = nHits + 1
+        .Parent.Collapse wdCollapseEnd
+    Loop
+End With
+With oDoc.Content.Find
+    .ClearFormatting
+    .Replacement.ClearFormatting
+    .Text = "it is important to note that "
+    .Replacement.Text = ""
+    .Wrap = wdFindContinue
+    If .Execute(Replace:=wdReplaceAll) Then
+        nOK = nOK + 1
+        sMsg = sMsg & "[OK]   Edit 3: removed hedge (replaced " & nHits & ", expected 1)" & vbCrLf
+    Else
+        nFail = nFail + 1
+        sMsg = sMsg & "[FAIL] Edit 3: anchor not found - removed hedge" & vbCrLf
+    End If
+End With
 ```
 
-This replaces the old "bare total edit count" pattern. The writer should see one line per edit in the final MsgBox and investigate every `[FAIL]` line before accepting tracked changes. A bare total does not tell the writer *which* edit failed.
+For a single-instance edit, the writer should see `expected 1` and a matching count; if the reported count exceeds the expected number, the anchor was not unique and the writer must inspect every changed location. A lighter alternative when uniqueness is certain is to omit the pre-count and simply state the expected count in the `[OK]` string. This replaces the old "bare total edit count" pattern: the writer should see one line per edit in the final MsgBox, investigate every `[FAIL]` line, and verify any count that exceeds what was expected before accepting tracked changes.
 
 For anchor-range-delete operations (long deletions), still wrap the deletion in a conditional that logs success or failure the same way.
 
@@ -76,7 +95,7 @@ For anchor-range-delete operations (long deletions), still wrap the deletion in 
 
 - Begin every macro with `oDoc.TrackRevisions = True` (template does this).
 - Call `.ClearFormatting` and `.Replacement.ClearFormatting` before every `Find` block.
-- Set `.Wrap = wdFindContinue` on every `Find` block.
+- Set `.Wrap = wdFindContinue` on Find/Replace blocks that should scan the whole document. Use `.Wrap = wdFindStop` when locating a single anchor for a structural edit (insertion, paragraph split, reordering, anchor-range delete) so the search cannot wrap around the end of the document and match an unintended occurrence. The reference patterns in `VBA_MACRO_TEMPLATE.bas` follow this split — Find/Replace uses `wdFindContinue`; the structural patterns use `wdFindStop`.
 - Use `.MatchCase = True` for strings containing proper nouns or meaningful capitalization; `False` otherwise.
 - **Also use `.MatchCase = True` when the found text begins with an uppercase letter but the replacement should be lowercase** — with `False`, Word auto-capitalizes the replacement to match the found text's case pattern.
 - Use `Replace:=wdReplaceAll` by default; use `wdReplaceOne` only when a phrase appears multiple times and only one instance should change — anchor with sufficient surrounding unique text.
@@ -99,7 +118,8 @@ For anchor-range-delete operations (long deletions), still wrap the deletion in 
   - `WRITING_LESSONS_LEARNED.md` — apply general writing lessons from prior sessions
   - `AI_ERRORS_TO_AVOID.md` — avoid all VBA errors and pitfalls documented here
   - `VBA_MACRO_TEMPLATE.bas` — use as the skeleton for any macro produced this session
-  - If any of the four `.md` guide files are missing, create them from the starter content in the "Guide File Starter Content" section below — but for `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`, first ask the writer whether they have existing versions from a previous project to bring in. If `VBA_MACRO_TEMPLATE.bas` is missing, tell the writer — do not regenerate it from memory.
+  - `AI_WRITING_INDICATORS.md` — do **not** read in full at session start, but be aware it exists: you MUST run the Section 8 (Quick Reference Checklist) check after proposing edits and after writing the macro (see "AI Writing Indicators Check" below). This step is mandatory every session, not optional.
+  - If any of the four document/cross-project `.md` guide files (`GRAMMATICAL_RULES_FORWARD.md`, `ITEMS_TO_CHECK.md`, `AI_ERRORS_TO_AVOID.md`, `WRITING_LESSONS_LEARNED.md`) are missing, create them from the starter content in the "Guide File Starter Content" section below — but for `AI_ERRORS_TO_AVOID.md` and `WRITING_LESSONS_LEARNED.md`, first ask the writer whether they have existing versions from a previous project to bring in. If `VBA_MACRO_TEMPLATE.bas` or `AI_WRITING_INDICATORS.md` is missing, tell the writer — do not regenerate either from memory (they are researched cross-project assets, not files to reconstruct).
 - **The writer should provide a pandoc-generated Markdown (`.md`) export of the document** so the AI can read section content, heading structure, and tables directly. The recommended command is: `pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"`.
 - **When first reading a `.md` file in a session, verify it was converted correctly** by checking that headings appear as `#` markers, tables render as Markdown tables, and special characters are intact. Note: superscripts/subscripts applied as character formatting (not true Unicode) will appear as plain characters — this is expected.
 - **The `.md` export is lossy.** It drops comments, cross-reference fields, equation objects, and character-formatted super/subscripts. When a proposed edit touches formatted content (subscripts, footnote markers, fields, partial-run bold), flag this to the writer and ask them to verify the `Find.Text` will match the real Word text before trusting the tracked change. **VBA character handling still applies:** Unicode characters visible in the `.md` (en dashes, smart quotes) must still use `ChrW()` in VBA `Find.Text` strings — never copy them literally into VBA string literals.
@@ -107,7 +127,7 @@ For anchor-range-delete operations (long deletions), still wrap the deletion in 
 - **When editing figure or table captions, edit only the caption text** (the descriptive text after the label and number). Never modify the `Figure N:` / `Table N:` prefix, the number itself, or its punctuation — Word may be maintaining these via automatic numbering, and changing them can break cross-references throughout the document. If uncertain whether captions are automatic, tell the writer to check via Insert → Cross-reference.
 - **`oDoc.Content.Find` operates on the main document body only.** It does not reach footnote, endnote, header, footer, or comment text. If an edit targets content in one of those story ranges, iterate `oDoc.StoryRanges` or explicitly address `oDoc.Footnotes(i).Range.Find` / `oDoc.Endnotes(i).Range.Find`. Flag this to the writer before proceeding so they can confirm the edit should run against the non-body story.
 - **When scoping a macro to a specific section**, read the exact heading text directly from the `.md` file (`#` markers); use these as bounding anchors in the macro. If no `.md` file is provided, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text.
-- Do not modify the guide files during the session. Collect pending updates and apply them only at session end after the writer confirms.
+- Do not modify the guide files during the session. Collect pending updates and apply them only at session end after the writer confirms. Unlike the companion code-documentation workflow (which writes `[UNCONFIRMED]` changelog entries during a session so nothing is lost across session boundaries), this workflow has no pending-marker mechanism: if a session ends before the writer confirms, the proposed guide-file updates are not yet written. This is acceptable because guide-file entries are cheap to regenerate, but it means you must restate any unwritten proposed updates at the start of the next session if the prior session ended before confirmation.
 - At the end of each session, update guide files as needed:
   - `GRAMMATICAL_RULES_FORWARD.md` — new style or terminology decisions
   - `ITEMS_TO_CHECK.md` — newly flagged acronyms, cross-references, or consistency issues
@@ -143,7 +163,7 @@ Each entry is tagged with the lowest aggressiveness level at which it should be 
 - **[X]** Passive voice where active is clearer (passive is acceptable in Methods sections regardless of level)
 - **[X]** Sentence-level restructuring for flow and cadence
 - **[X]** Word-choice improvements beyond standard technical equivalents
-- **(all levels)** **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do.
+- **(all levels)** **Do not introduce em dashes (—) in any suggested edit.** If an em dash already exists in the document, flag it and ask the writer whether it is intentional — do not silently preserve or add them. Most writers do not type em dashes naturally and AI models use them far more than typical writers do. Scope note: in correspondence (letters, emails, memos) even a single em dash is a strong AI tell and should always be flagged; in scholarly prose (journal articles, technical reports, proposals) the em dash is a more accepted device, so flag clusters and any that read as AI-inserted rather than reflexively flagging every one. `AI_WRITING_INDICATORS.md` §7 is the authority on this scope distinction.
 
 Edits should feel surgical; preserve the writer's existing voice. Do not paraphrase for the sake of paraphrasing.
 
