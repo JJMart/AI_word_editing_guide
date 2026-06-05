@@ -122,6 +122,18 @@ AI writing tends toward unearned enthusiasm — words like "exceptional," "remar
 
 Human writing typically has themes woven throughout, with a conclusion that closes those themes meaningfully. AI writing often has a **summary conclusion** (restating what was said) rather than a **resonant conclusion** (bringing the reader somewhere new).
 
+### Rhetorical Fragment for Punch (Marketing Register in Technical Writing)
+
+AI models are trained on a wide corpus that includes marketing copy, blog posts, and popular science writing, where a short dramatic sentence following a longer problem statement is a common rhetorical device:
+
+> "Existing sensors require laboratory conditions, are expensive to deploy, and cannot operate in fast-moving water. This changes that."
+
+Variants: *"Until now."* / *"Not anymore."* / *"That ends here."* / *"We change that."*
+
+In a technical document — a research proposal, journal article, or engineering report — this pattern is a register mismatch. The genre norm is to state the limitation and then describe the approach that addresses it in the same clause or the next sentence, without the dramatic pause. A human technical writer trained in the field would write something like: *"The present approach addresses this limitation by…"* The one-sentence fragment signals that the AI was trying to sound compelling rather than precise.
+
+Note: this is distinct from the natural sentence-length variation (burstiness) that characterizes human writing (§2). The tell is the **rhetorical intent** — a deliberate marketing-style punch — not the short length itself.
+
 ---
 
 ## 4. Structural & Formatting Indicators
@@ -291,6 +303,7 @@ Use this checklist when reviewing a document for AI indicators:
 - [ ] No personal observations, anecdotes, or unexpected specifics
 - [ ] Repeated concepts with different words
 - [ ] No genuine thematic arc — summary conclusion instead of resonant one
+- [ ] Rhetorical punch fragments in technical writing ("This changes that." / "Until now." / "Not anymore.") — marketing register mismatched to genre
 
 **Formatting**
 - [ ] Bullet points where flowing prose is more appropriate
