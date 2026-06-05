@@ -19,13 +19,14 @@ A structured workflow for editing Microsoft Word documents using an AI assistant
 
 | File | Scope | Description |
 |---|---|---|
-| [`agent.md`](agent.md) | **Cross-project** | Single source of truth for AI behavior in this workflow. All agent-specific files (`.github/copilot-instructions.md`, `.roo/rules.md`, etc.) redirect here. Update this file when workflow rules change. |
+| [`AGENTS.md`](AGENTS.md) | **Cross-project** | Single source of truth for AI behavior in this workflow. All agent-specific loader files (`.github/copilot-instructions.md`, `.roo/rules.md`, `.cursorrules`, `.windsurfrules`, `CLAUDE.md`) redirect here. Update this file when workflow rules change. |
 | [`VBA_MACRO_TEMPLATE.bas`](VBA_MACRO_TEMPLATE.bas) | **Cross-project** | Canonical VBA macro skeleton. The AI copies this template and fills only the EDIT BLOCKS region. Ensures every macro has consistent header, footer, per-edit reporting, and coding conventions. |
 | [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORWARD.md) | Document project | Style and terminology decisions specific to the document being edited (units, capitalization, terminology preferences, acronym tracking). Read by the AI at session start so rules carry forward. |
 | [`ITEMS_TO_CHECK.md`](ITEMS_TO_CHECK.md) | Document project | Running checklist of items to verify on a second pass: undefined acronyms, unused acronyms, cross-reference accuracy, numeric consistency, and reference list completeness. |
 | [`AI_ERRORS_TO_AVOID.md`](AI_ERRORS_TO_AVOID.md) | **Cross-project** | Living log of errors encountered during AI-assisted VBA editing sessions. Carry forward to future projects and add to it over time. |
 | [`WRITING_LESSONS_LEARNED.md`](WRITING_LESSONS_LEARNED.md) | **Cross-project** | Living document of general writing insights gained through AI-assisted editing. Carry forward across all projects. |
 | [`AI_WRITING_INDICATORS.md`](AI_WRITING_INDICATORS.md) | **Cross-project** | Reference on indicators of AI-generated writing. The AI reads Section 8 (Quick Reference Checklist) after proposing edits and after writing a macro to flag AI indicators in the original text and verify none are introduced by the edits. |
+| `pypdf` (Python package) | Tool | Extracts plain text from PDF reference documents (pandoc cannot read PDF). Install once with `pip install pypdf`. See [Converting a PDF Reference Document to Text](#converting-a-pdf-reference-document-to-text) below. |
 
 > **Cross-project files** are writer-owned and should not be reset when starting a new document project. Copy them into the new project folder and continue adding to them.
 
@@ -54,6 +55,28 @@ Before each session, convert your `.docx` to Markdown using pandoc so the AI can
 
 ---
 
+## Converting a PDF Reference Document to Text
+
+When working on proposals, reports, or other documents that must align with an external reference (a call for proposals, a submission template, a style guide), you may want to provide that reference to the AI as readable text.
+
+**Pandoc cannot read PDF files** — it converts *to* PDF but not *from* it. Use `pypdf` (a Python package) instead:
+
+1. Install `pypdf` once:
+   ```powershell
+   pip install pypdf
+   ```
+2. Extract the text from the PDF:
+   ```powershell
+   python -c "import pypdf; r=pypdf.PdfReader('reference.pdf'); print('\n'.join(p.extract_text() for p in r.pages))" > reference.txt
+   ```
+   Replace `reference.pdf` with your file name. The output `reference.txt` will be placed in the current directory.
+3. Place `reference.txt` in the project folder alongside the other guide files.
+4. Tell the AI the filename and ask it to read the file and verify extraction quality before using it as reference context. The AI will check whether the text is coherent and flag any sections that appear garbled or empty — you do not need to review the raw `.txt` yourself.
+
+> **Quality caveat:** PDF text extraction works well for text-based PDFs (those with selectable text). Scanned PDFs or PDFs with heavy formatting may produce garbled or incomplete output. If the AI flags quality problems, re-extract using an OCR tool such as `pytesseract` or Adobe Acrobat's export feature.
+
+---
+
 ## Running a VBA Macro in Word
 
 1. **Open the VBA Editor:** Press `Alt+F11`
@@ -77,8 +100,8 @@ Before each session, convert your `.docx` to Markdown using pandoc so the AI can
 2. Convert the document to Markdown using the pandoc command above and place the `.md` file in the project folder
 3. Open a new AI chat session
 4. Load the AI behavior rules:
-   - **VS Code agents (Copilot, Roo Code, or similar):** no attachment needed — [`agent.md`](agent.md) and the other guide files are read automatically from the workspace via the agent-specific redirect file (`.github/copilot-instructions.md` for Copilot, `.roo/rules.md` for Roo Code)
-   - **Other AI tools (ChatGPT, Claude, etc.):** attach [`agent.md`](agent.md), [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORWARD.md), [`ITEMS_TO_CHECK.md`](ITEMS_TO_CHECK.md), and [`VBA_MACRO_TEMPLATE.bas`](VBA_MACRO_TEMPLATE.bas). If your tool supports a persistent system prompt file (e.g., `claude.md` for Claude Projects), copy the contents of [`agent.md`](agent.md) into that file so the core behavior rules load automatically and you only need to attach the three document-scoped files each session
+   - **VS Code agents (Copilot, Roo Code, Cline, Cursor, Windsurf, or similar):** no attachment needed — [`AGENTS.md`](AGENTS.md) and the other guide files are read automatically from the workspace via the agent-specific loader file
+   - **Other AI tools (ChatGPT, Claude, etc.):** attach [`AGENTS.md`](AGENTS.md), [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORWARD.md), [`ITEMS_TO_CHECK.md`](ITEMS_TO_CHECK.md), and [`VBA_MACRO_TEMPLATE.bas`](VBA_MACRO_TEMPLATE.bas). If your tool supports a persistent system prompt file (e.g., a Claude Project instruction file), copy the contents of [`AGENTS.md`](AGENTS.md) into that file so the core behavior rules load automatically and you only need to attach the three document-scoped files each session
 5. Tell the AI:
    - The **filename** of the `.md` export and the **section name and number** to work on
    - The **document type** (peer-reviewed paper, technical report, grant proposal, etc.)
@@ -105,19 +128,23 @@ After all sections are edited, run a dedicated session using [`ITEMS_TO_CHECK.md
 
 ---
 
-## VS Code AI Agent Users (Copilot, Roo Code, etc.)
+## VS Code AI Agent Users (Copilot, Roo Code, Cline, Cursor, Windsurf, etc.)
 
-This workflow is agent-agnostic. All AI behavior rules live in [`agent.md`](agent.md) at the project root. Agent-specific files simply redirect to it:
+This workflow is agent-agnostic. All AI behavior rules live in [`AGENTS.md`](AGENTS.md) at the project root. Agent-specific loader files simply point to it:
 
-| Agent | Config file | Notes |
+| Agent | Auto-load file | Notes |
 |---|---|---|
-| GitHub Copilot | `.github/copilot-instructions.md` | Auto-injected into every Copilot Chat session when the folder is open as a workspace |
-| Roo Code | `.roo/rules.md` | Loaded automatically by Roo Code for every session in this workspace |
-| Other VS Code agents | Create the agent's config file with one line: *"Read `agent.md` and follow all instructions found there."* | |
+| **Codex** | `AGENTS.md` | No loader needed — reads `AGENTS.md` from the repository root natively |
+| **Cline** | `AGENTS.md` | No loader needed — reads `AGENTS.md` natively (also supports `.clinerules/`) |
+| **Roo Code** | `.roo/rules.md` | Loaded automatically by Roo Code for every session in this workspace |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | Auto-injected in Agent/Edits mode; for Chat mode, attach `AGENTS.md` to the session context |
+| **Cursor** | `.cursorrules` | Loaded automatically by Cursor |
+| **Windsurf** | `.windsurfrules` | Loaded automatically by Windsurf |
+| **Claude Code** | `CLAUDE.md` | Loaded automatically by Claude Code |
 
 The agent will also read [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORWARD.md), [`ITEMS_TO_CHECK.md`](ITEMS_TO_CHECK.md), [`WRITING_LESSONS_LEARNED.md`](WRITING_LESSONS_LEARNED.md), [`AI_ERRORS_TO_AVOID.md`](AI_ERRORS_TO_AVOID.md), and [`VBA_MACRO_TEMPLATE.bas`](VBA_MACRO_TEMPLATE.bas) automatically at the start of each session — **no manual file attachment is needed**. Simply tell the AI the `.md` filename and which section to work on.
 
-**To add a new AI agent:** create its config file in the location the agent expects, containing only: `Read agent.md in the workspace root and follow all instructions found there.`
+**To add a new AI agent:** create its config file in the location the agent expects, containing only: `Read AGENTS.md in the workspace root and follow all instructions found there.` Then add a row to the table in the [Agent Compatibility](AGENTS.md#agent-compatibility) section of `AGENTS.md`.
 
 ---
 
@@ -132,4 +159,4 @@ The agent will also read [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORW
 - Save the Word document after pasting VBA and *before* running `Alt+F8`, or the macro may not appear in the run list
 - When asking the AI to edit a figure or table caption, expect it to edit only the caption *text* (the words after `Figure N:` or `Table N:`). It will leave the label and number alone so automatic numbering and cross-references are not disturbed
 
-> **Note for maintainers:** `README.md` is the writer-facing summary of [`agent.md`](agent.md). If writer-relevant workflow steps or file descriptions are updated in [`agent.md`](agent.md), update this file to match.
+> **Note for maintainers:** `README.md` is the writer-facing summary of [`AGENTS.md`](AGENTS.md). If writer-relevant workflow steps or file descriptions are updated in [`AGENTS.md`](AGENTS.md), update this file to match.

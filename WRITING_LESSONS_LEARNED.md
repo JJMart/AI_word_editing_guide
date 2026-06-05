@@ -7,7 +7,7 @@ This is a living document of general lessons learned from AI-assisted document e
 ## Workflow and Process
 
 - Work one document section per chat session to maintain coherent context and avoid performance degradation near the context window limit
-- When using VS Code with an AI agent (GitHub Copilot, Roo Code, etc.), guide files (`GRAMMATICAL_RULES_FORWARD.md`, `ITEMS_TO_CHECK.md`, `WRITING_LESSONS_LEARNED.md`, `AI_ERRORS_TO_AVOID.md`) are read automatically at session start via `agent.md` — no manual attachment needed. When using other AI tools (ChatGPT, Claude, etc.), attach them manually at the start of each session
+- When using VS Code with an AI agent (GitHub Copilot, Roo Code, Cline, Cursor, Windsurf, etc.), guide files (`GRAMMATICAL_RULES_FORWARD.md`, `ITEMS_TO_CHECK.md`, `WRITING_LESSONS_LEARNED.md`, `AI_ERRORS_TO_AVOID.md`) are read automatically at session start via `AGENTS.md` — no manual attachment needed. When using other AI tools (ChatGPT, Claude, etc.), attach them manually at the start of each session
 - Ask the AI to update guide files at the end of each session — do not rely on the AI to do this automatically
 - Keep a dated backup copy of the document before each session as a rollback point; VBA macros making bulk find/replace changes can be difficult to reverse manually
 - A dedicated second-pass session focused on `ITEMS_TO_CHECK.md` is more effective than trying to resolve cross-document issues (e.g., acronym ordering) inline during editing sessions

@@ -1,8 +1,8 @@
-# AI Agent Instructions — AI Word Editing Workflow
+# AI Agent Instructions — AI Word Editing Workflow (AGENTS.md)
 
 This workspace uses a structured workflow for editing Microsoft Word documents. Edits are delivered as Word VBA macros that implement changes as tracked revisions. The writer accepts or rejects each change individually.
 
-This file is the single source of truth for AI behavior in this workflow. Agent-specific files (`.github/copilot-instructions.md`, `.roo/rules.md`, etc.) redirect here. The writer-facing summary lives in `README.md`; if a rule here affects what the writer does (session start/end steps, aggressiveness levels, file descriptions), mirror it there.
+This file is the single source of truth for AI behavior in this workflow. It lives in the project root as `AGENTS.md` so it is agent-agnostic — agent-specific loader files (`.github/copilot-instructions.md`, `.roo/rules.md`, `.cursorrules`, `.windsurfrules`, `CLAUDE.md`) simply point here. See the [Agent Compatibility](#agent-compatibility) section at the bottom of this file for the full wiring table. The writer-facing summary lives in `README.md`; if a rule here affects what the writer does (session start/end steps, aggressiveness levels, file descriptions), mirror it there.
 
 ---
 
@@ -95,7 +95,7 @@ For anchor-range-delete operations (long deletions), still wrap the deletion in 
 - Work one document section per session to avoid context window degradation. Target roughly 500–3,000 words per session — adjust heading level accordingly.
 - **At the start of every session, read the following files from the workspace before doing anything else:**
   - `GRAMMATICAL_RULES_FORWARD.md` — apply all style and terminology rules found here to every edit
-  - `ITEMS_TO_CHECK.md` — be aware of all open items; do not re-flag already resolved items
+  - `ITEMS_TO_CHECK.md` — scan for open (unresolved) items; list any you find and ask the writer to confirm, resolve, or defer each one before starting new work. Do not silently skip open items — surface them explicitly. Deferred items stay open and must be surfaced again at the next session start.
   - `WRITING_LESSONS_LEARNED.md` — apply general writing lessons from prior sessions
   - `AI_ERRORS_TO_AVOID.md` — avoid all VBA errors and pitfalls documented here
   - `VBA_MACRO_TEMPLATE.bas` — use as the skeleton for any macro produced this session
@@ -103,6 +103,7 @@ For anchor-range-delete operations (long deletions), still wrap the deletion in 
 - **The writer should provide a pandoc-generated Markdown (`.md`) export of the document** so the AI can read section content, heading structure, and tables directly. The recommended command is: `pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument.md"`.
 - **When first reading a `.md` file in a session, verify it was converted correctly** by checking that headings appear as `#` markers, tables render as Markdown tables, and special characters are intact. Note: superscripts/subscripts applied as character formatting (not true Unicode) will appear as plain characters — this is expected.
 - **The `.md` export is lossy.** It drops comments, cross-reference fields, equation objects, and character-formatted super/subscripts. When a proposed edit touches formatted content (subscripts, footnote markers, fields, partial-run bold), flag this to the writer and ask them to verify the `Find.Text` will match the real Word text before trusting the tracked change. **VBA character handling still applies:** Unicode characters visible in the `.md` (en dashes, smart quotes) must still use `ChrW()` in VBA `Find.Text` strings — never copy them literally into VBA string literals.
+- **If the writer provides a reference document (e.g., a call for proposals, a submission template, a style guide), it will arrive as a plain-text `.txt` file** extracted from the original PDF using `pypdf` — pandoc cannot read PDF files. Read the `.txt` file as context when the writer asks you to cross-reference or align the document against it. Do not attempt to open or reference the original PDF. **When first reading the `.txt` file, perform an automatic quality check** before using it as reference context: scan for (a) large runs of garbled or non-English characters, (b) pages that extracted as blank or near-blank, (c) section headings that are missing or appear as garbage, and (d) tables that have collapsed into undifferentiated text. The bar is whether the AI can reliably extract information from the file — minor formatting irregularities that would be hard for a human to read are acceptable as long as the content is intact. Report the result to the writer in one or two sentences (e.g., "Extraction looks clean — all sections present and readable" or "Pages 4–6 appear blank and table content on page 9 is garbled — the PDF may be partially scanned"). If significant quality problems are found, ask the writer to re-extract using an OCR tool before proceeding.
 - **When editing figure or table captions, edit only the caption text** (the descriptive text after the label and number). Never modify the `Figure N:` / `Table N:` prefix, the number itself, or its punctuation — Word may be maintaining these via automatic numbering, and changing them can break cross-references throughout the document. If uncertain whether captions are automatic, tell the writer to check via Insert → Cross-reference.
 - **`oDoc.Content.Find` operates on the main document body only.** It does not reach footnote, endnote, header, footer, or comment text. If an edit targets content in one of those story ranges, iterate `oDoc.StoryRanges` or explicitly address `oDoc.Footnotes(i).Range.Find` / `oDoc.Endnotes(i).Range.Find`. Flag this to the writer before proceeding so they can confirm the edit should run against the non-body story.
 - **When scoping a macro to a specific section**, read the exact heading text directly from the `.md` file (`#` markers); use these as bounding anchors in the macro. If no `.md` file is provided, ask the writer to check the Navigation panel (View → Navigation Pane) and confirm the exact heading text.
@@ -199,4 +200,26 @@ Two `~` characters separated by text in a chat message may render as strikethrou
 
 ## README Sync
 
-`README.md` is the writer-facing summary of this workflow and is displayed on the GitHub project page. If a rule change here affects writer steps (session start/end checklists, aggressiveness levels, file descriptions, pandoc command), update `README.md` to match.
+`README.md` is the writer-facing summary of this workflow and is displayed on the GitHub project page. If a rule change here affects writer steps (session start/end checklists, aggressiveness levels, file descriptions, pandoc command), update `README.md` to match. Update `README.md` only after the writer confirms the workflow rule change is working as intended — it describes current, verified workflow behavior.
+
+---
+
+## Agent Compatibility
+
+The project instructions live in one file: **`AGENTS.md`** in the project root. Each AI agent uses a different mechanism to load project instructions automatically. The table below shows how each agent is wired to `AGENTS.md` so only one instructions file ever needs to be maintained.
+
+| Agent | Auto-load file | How it is wired |
+|-------|----------------|-----------------|
+| **Codex** | `AGENTS.md` | No loader needed — Codex reads `AGENTS.md` from the repository root natively. |
+| **Cline** | `AGENTS.md` | No loader needed — Cline reads `AGENTS.md` natively (also supports `.clinerules/`). |
+| **Roo Code** | `.roo/rules.md` | Contains one line: `Read AGENTS.md in the workspace root and follow all instructions found there.` |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | Pointer works in Agent/Edits mode; paste or mirror full contents for Chat mode (see comment block in that file). |
+| **Cursor** | `.cursorrules` | Contains one line pointing to `AGENTS.md`. |
+| **Windsurf** | `.windsurfrules` | Contains one line pointing to `AGENTS.md`. |
+| **Claude Code** | `CLAUDE.md` | Contains one line pointing to `AGENTS.md`. |
+
+> **Compatibility note:** This strategy is most reliable with agents that can read project files and use tools. For inline-completion tools or chat assistants without repository file access, treat `AGENTS.md` as source material to paste into that tool's supported instruction surface.
+
+**To add a new AI agent:** create its config file in the location the agent expects, containing only:
+`Read AGENTS.md in the workspace root and follow all instructions found there.`
+Then add a row to the table above.

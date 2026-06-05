@@ -12,7 +12,7 @@
 ' EDIT BLOCKS region. Do NOT modify the HEADER or FOOTER regions - they
 ' are required for consistent per-edit reporting.
 '
-' VBA rules (mirror of agent.md - do not deviate):
+' VBA rules (mirror of AGENTS.md - do not deviate):
 '   - Use ChrW() (not Chr()) for any Unicode character above code point 255.
 '   - Use ChrW(8217) for the apostrophe in contractions and possessives.
 '   - Set .MatchCase = True when the found text starts uppercase but the
