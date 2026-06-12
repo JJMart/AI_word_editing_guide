@@ -50,6 +50,13 @@ Before each session, convert your `.docx` to Markdown using pandoc so the AI can
    - `--track-changes=accept` — shows the clean accepted-state text; omit this flag if the document has pending tracked changes you want the AI to see
 3. Place the `.md` file in the same project folder as the guide files
 
+> **Shared documents with pending tracked changes:** If your document already contains unaccepted tracked changes from co-authors, export it **twice** and give the AI both files:
+> ```powershell
+> pandoc "MyDocument.docx" --wrap=none --track-changes=accept -o "MyDocument_accepted.md"
+> pandoc "MyDocument.docx" --wrap=none --track-changes=all -o "MyDocument_allchanges.md"
+> ```
+> The AI uses the **accepted** view as the drafting target (anchor text and replacements reflect what the document will read like once revisions are accepted) and the **all-changes** view as a safety check (co-author insertions appear as `{++...++}` and deletions as `{--...--}`), so it does not propose edits to text a co-author has already deleted or modified. Tell the AI both filenames and which is which.
+
 > **Why pandoc instead of plain-text export?** Pandoc preserves document structure — section headings appear as `#` Markdown headers (so the AI can scope macros to sections without you checking the Navigation pane), tables retain their layout, and lists stay readable. Plain-text export flattens all of this.
 
 > **Lossy export caveat:** pandoc does not preserve comments, cross-reference fields, equation objects, or character-formatted super/subscripts. The AI will flag any edit that touches formatted content so you can verify the Find string matches the real Word text before accepting the tracked change.
@@ -163,5 +170,7 @@ The agent will also read [`GRAMMATICAL_RULES_FORWARD.md`](GRAMMATICAL_RULES_FORW
 - For contractions and possessives in VBA search strings, `ChrW(8217)` must be used for the apostrophe — Word AutoCorrect replaces straight apostrophes with curly ones that bare `'` will not match
 - Save the Word document after pasting VBA and *before* running `Alt+F8`, or the macro may not appear in the run list
 - When asking the AI to edit a figure or table caption, expect it to edit only the caption *text* (the words after `Figure N:` or `Table N:`). It will leave the label and number alone so automatic numbering and cross-references are not disturbed
+- **Ask for explanatory comments when you want the rationale to travel with a change.** The AI can attach a Word comment to any edit so co-reviewers see the old value, the new value, and the reason together — useful for shared documents. The comment stays anchored to the original (struck-through) text and requires no "Accept All Changes" step, so your tracked-change audit trail is preserved. You can also request a comment-only flag (a note with no text change) to raise a question for a co-author
+- **Working on a shared document with pending tracked changes?** Provide both the accepted-view and all-changes-view `.md` exports (see [Converting the Document to Markdown](#converting-the-document-to-markdown)). The AI drafts against the accepted view and uses the all-changes view to avoid touching text a co-author has already deleted or modified
 
 > **Note for maintainers:** `README.md` is the writer-facing summary of [`AGENTS.md`](AGENTS.md). If writer-relevant workflow steps or file descriptions are updated in [`AGENTS.md`](AGENTS.md), update this file to match.

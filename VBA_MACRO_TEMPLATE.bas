@@ -4,9 +4,10 @@
 ' This file contains:
 '   1. TestSetup           - one-time verification macro for first-run writers
 '   2. ReviewEdits_<name>  - canonical edit-macro skeleton (the main template)
-'   3. Reference patterns  - commented examples of Find/Replace, insertion,
-'                            reordering, paragraph split, and anchor-range
-'                            deletion (for reference only, not executed)
+'   3. DoEdit              - helper sub for comment-annotated edits (Pattern 6)
+'   4. Reference patterns  - commented examples of Find/Replace, insertion,
+'                            reordering, paragraph split, anchor-range deletion,
+'                            and comment-annotated edits (reference only)
 '
 ' The AI copies the ReviewEdits template verbatim and fills ONLY the
 ' EDIT BLOCKS region. Do NOT modify the HEADER or FOOTER regions - they
@@ -116,8 +117,8 @@ End Sub
 '   5. Every Edit Block must call the If/Else logging pattern so the MsgBox
 '      report shows per-edit [OK] or [FAIL].
 '   6. See the "Reference Patterns" section at the bottom of this file for
-'     examples of Find/Replace, insertion, reordering, paragraph split, and
-'     anchor-range deletion.
+'     examples of Find/Replace, insertion, reordering, paragraph split,
+'     anchor-range deletion, and comment-annotated edits.
 ' =============================================================================
 
 Sub ReviewEdits_SectionName()
@@ -195,9 +196,69 @@ End Sub
 
 
 ' =============================================================================
+' DOEDIT - helper sub for comment-annotated edits (used by Pattern 6)
+' =============================================================================
+' Performs one single-pass "find -> comment -> change" edit and logs [OK] or
+' [FAIL] to the shared sMsg report, exactly like every inline edit block.
+'
+'   oDoc     - the active document
+'   oScope   - the Range to search within (pass oDoc.Content for whole body,
+'              or a bounded Range to scope the edit to one section)
+'   sFind    - the OLD text to locate (build with ChrW() for any Unicode)
+'   sReplace - the NEW text; pass the SAME value as sFind for a comment-only
+'              flag with no text change
+'   sComment - the rationale to attach as a Word comment to the OLD text
+'   sLabel   - the report label, e.g. "Edit 4: corrected SE value"
+'   bMatchCase - True when found text starts uppercase but replacement is lower
+'   nOK, nFail - the running counters (passed ByRef so they update the caller)
+'
+' Why single-pass: the comment is anchored to the OLD characters BEFORE they
+' are overwritten. Under TrackRevisions = True the overwrite is recorded as a
+' tracked deletion + insertion and the comment stays anchored to the
+' strikethrough original - so the old value, new value, and rationale are all
+' visible together with NO "Accept All Changes" step required. Never attach a
+' comment to the new value and then force acceptance; that destroys the audit
+' trail (see AI_ERRORS_TO_AVOID.md).
+' =============================================================================
+
+Sub DoEdit(oDoc As Document, oScope As Range, sFind As String, _
+           sReplace As String, sComment As String, sLabel As String, _
+           bMatchCase As Boolean, ByRef nOK As Long, ByRef nFail As Long, _
+           ByRef sMsg As String)
+    Dim oRng As Range
+    Set oRng = oScope.Duplicate
+    With oRng.Find
+        .ClearFormatting
+        .Text = sFind
+        .MatchCase = bMatchCase
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .Wrap = wdFindStop
+        .Forward = True
+        If .Execute Then
+            ' Anchor the comment to the OLD text before changing it.
+            If Len(sComment) > 0 Then
+                oDoc.Comments.Add Range:=oRng, Text:=sComment
+            End If
+            ' Overwrite only when the text actually changes (skip for a
+            ' comment-only flag where sReplace = sFind).
+            If sReplace <> sFind Then
+                oRng.Text = sReplace
+            End If
+            nOK = nOK + 1
+            sMsg = sMsg & "[OK]   " & sLabel & vbCrLf
+        Else
+            nFail = nFail + 1
+            sMsg = sMsg & "[FAIL] " & sLabel & " - anchor not found" & vbCrLf
+        End If
+    End With
+End Sub
+
+
+' =============================================================================
 ' REFERENCE PATTERNS - examples only, do not execute
 ' =============================================================================
-' The patterns below are reference skeletons for the five supported edit
+' The patterns below are reference skeletons for the six supported edit
 ' types. Copy the relevant pattern into the EDIT BLOCKS region and adapt.
 ' Every pattern logs [OK] / [FAIL] to sMsg the same way so the MsgBox report
 ' stays consistent.
@@ -416,3 +477,45 @@ End Sub
 '     nFail = nFail + 1
 '     sMsg = sMsg & "[FAIL] Edit N: delete anchors not found (start=" & bS & ", end=" & bE & ")" & vbCrLf
 ' End If
+
+
+' --- PATTERN 6: Comment-annotated edit (rationale travels with the change) --
+' Use for: any edit (most often Find/Replace) where the writer wants the
+'          reason attached as a Word comment so co-reviewers see old value,
+'          new value, and rationale together.
+'
+' Strategy: single-pass find -> comment -> change. Find the OLD text, attach
+' the comment to it BEFORE overwriting, then overwrite. Under
+' TrackRevisions = True the overwrite is a tracked deletion + insertion and the
+' comment stays anchored to the strikethrough original - NO acceptance step is
+' required to see the audit trail. Use the DoEdit helper (above) so each
+' annotated edit is one logical line and logs [OK] / [FAIL] consistently.
+'
+' WARNING: never use a two-phase design that comments the NEW value and tells
+' the writer to "Accept All Changes" first - that destroys the tracked-change
+' audit trail. WARNING: do not walk by occurrence count when the same value is
+' commented/changed in several places - strikethrough originals re-match on the
+' next Find iteration (see AI_ERRORS_TO_AVOID.md). Anchor each instance with
+' unique surrounding text instead.
+'
+' ' Edit N: correct SE value and explain why (comment travels with the change)
+' DoEdit oDoc, oDoc.Content, _
+'        "SE = 0.0463", _
+'        "SE = 0.0436", _
+'        "Transposed digits in original; corrected to match Table 2.", _
+'        "Edit N: corrected SE value", _
+'        True, nOK, nFail, sMsg
+'
+' ' Comment-only flag (no text change): pass identical find and replace text.
+' DoEdit oDoc, oDoc.Content, _
+'        "the proposed method", _
+'        "the proposed method", _
+'        "Co-author to confirm this is the final method name before submission.", _
+'        "Edit N: flagged method name for confirmation", _
+'        False, nOK, nFail, sMsg
+'
+' NOTE: to scope the edit to one section, pass a bounded Range as the second
+' argument (built from the section heading anchors) instead of oDoc.Content.
+' NOTE: oDoc.Content.Find does not reach comment text - a comment cannot be
+' edited or removed by a later body-text Find/Replace; delete it via the Word
+' Review pane or oDoc.Comments(i).Delete.
